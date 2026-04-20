@@ -2,18 +2,13 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const getApiUrl = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    const protocol = window.location.protocol
-    if (host === 'www.liyaoyao.top' || host === 'liyaoyao.top') {
-      return 'https://api-chguiwvisu.cn-hangzhou.fcapp.run'
-    }
-    if (import.meta.env.DEV) {
-      return '/api'
-    }
-    return `${protocol}//${host}:3000`
+  // 生产环境：使用环境变量
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_BASE_URL || 'https://your-backend-url.fcapp.run'
   }
-  return import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  
+  // 开发环境：使用代理
+  return '/api'
 }
 
 const API_URL = getApiUrl()

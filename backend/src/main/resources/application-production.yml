@@ -1,0 +1,41 @@
+server:
+  port: 3000
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:yaoyao_memorial}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:yaoyao}
+    password: ${DB_PASSWORD:yaoyao20230228}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_uuid
+
+yaoyao:
+  jwt:
+    secret: ${JWT_SECRET:yaoyao-memorial-secret-key-2024-production}
+    expires-in: 604800000
+  admin:
+    username: ${ADMIN_USERNAME:yaoyao}
+    password: ${ADMIN_PASSWORD:yaoyao20230228}
+  gitee:
+    access-token: ${GITEE_ACCESS_TOKEN:}
+    owner: ${GITEE_OWNER:}
+    repo: ${GITEE_REPO:}
+    base-url: https://gitee.com/api/v5
+    raw-url: https://gitee.com
+    path: images
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://yaoyao-home.vercel.app,https://yaoyao-home-git-main-xiaobaiba999s-projects.vercel.app}
