@@ -9,18 +9,19 @@ import com.yaoyao.service.GiteeStorageService;
 import com.yaoyao.service.LocalStorageService;
 import com.yaoyao.service.PhotoService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PhotoServiceImpl implements PhotoService {
 
+    private static final Logger log = LoggerFactory.getLogger(PhotoServiceImpl.class);
     private final PhotoMapper photoMapper;
     private final GiteeStorageService giteeStorageService;
     private final LocalStorageService localStorageService;

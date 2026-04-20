@@ -37,6 +37,9 @@ logs/
 uploads/
 backend/uploads/
 
+# Music API project (独立仓库，不在此提交)
+music-api/
+
 # Music UI project
 music-ui/
 

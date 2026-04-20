@@ -5,7 +5,8 @@ import com.yaoyao.config.AppProperties;
 import com.yaoyao.service.GiteeStorageService;
 import com.yaoyao.service.LocalStorageService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,11 +16,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LocalStorageServiceImpl implements LocalStorageService {
 
+    private static final Logger log = LoggerFactory.getLogger(LocalStorageServiceImpl.class);
     private final AppProperties appProperties;
 
     @Override

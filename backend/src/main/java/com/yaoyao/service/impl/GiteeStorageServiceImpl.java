@@ -9,7 +9,8 @@ import cn.hutool.json.JSONUtil;
 import com.yaoyao.config.AppProperties;
 import com.yaoyao.service.GiteeStorageService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,11 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GiteeStorageServiceImpl implements GiteeStorageService {
 
+    private static final Logger log = LoggerFactory.getLogger(GiteeStorageServiceImpl.class);
     private final AppProperties appProperties;
 
     @Override

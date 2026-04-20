@@ -19,4 +19,17 @@ public class Photo implements Serializable {
     private String url;
     private String description;
     private LocalDateTime createdAt;
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getFilename() { return filename; }
+    public void setFilename(String filename) { this.filename = filename; }
+    public String getOriginalName() { return originalName; }
+    public void setOriginalName(String originalName) { this.originalName = originalName; }
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -60,7 +60,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/plans",
                         "/api/timeline",
                         "/api/photos",
-                        "/api/upload"
+                        "/api/upload",
+                        "/api/music/**"
                 );
     }
 }
