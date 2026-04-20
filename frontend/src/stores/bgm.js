@@ -3,6 +3,17 @@ import { ref, computed, watch } from 'vue'
 
 const STORAGE_KEY = 'bgm_state'
 
+const DEFAULT_PLAYLIST = [
+  { name: '小幸运', url: 'https://cdn.gequhai.com/mp3/小幸运.mp3' },
+  { name: '告白气球', url: 'https://cdn.gequhai.com/mp3/告白气球.mp3' },
+  { name: '晴天', url: 'https://cdn.gequhai.com/mp3/晴天.mp3' },
+  { name: '七里香', url: 'https://cdn.gequhai.com/mp3/七里香.mp3' },
+  { name: '简单爱', url: 'https://cdn.gequhai.com/mp3/简单爱.mp3' },
+  { name: '稻香', url: 'https://cdn.gequhai.com/mp3/稻香.mp3' },
+  { name: '遇见', url: 'https://cdn.gequhai.com/mp3/遇见.mp3' },
+  { name: '后来', url: 'https://cdn.gequhai.com/mp3/后来.mp3' }
+]
+
 function saveBgmState(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -14,53 +25,34 @@ function saveBgmState(state) {
 function loadBgmState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      return JSON.parse(saved)
-    }
-  } catch (e) {
-    console.error('加载音乐状态失败', e)
-  }
+    if (saved) return JSON.parse(saved)
+  } catch (e) {}
   return null
 }
 
+export function loadCustomPlaylist() {
+  try {
+    const custom = localStorage.getItem('bgm_custom_playlist')
+    if (custom) return JSON.parse(custom)
+  } catch (e) {}
+  return null
+}
+
+export function saveCustomPlaylist(playlist) {
+  try {
+    localStorage.setItem('bgm_custom_playlist', JSON.stringify(playlist))
+  } catch (e) {}
+}
+
 export const useBgmStore = defineStore('bgm', () => {
-  const playlist = [
-    { name: '音乐 1', path: '/music/1171348260 (1).mp3' },
-    { name: '音乐 2', path: '/music/1171348260 (2).mp3' },
-    { name: '音乐 3', path: '/music/1171348260 (3).mp3' },
-    { name: '音乐 4', path: '/music/1171348260 (4).mp3' },
-    { name: '音乐 5', path: '/music/1171348260 (5).mp3' },
-    { name: '音乐 6', path: '/music/1171348260 (6).mp3' },
-    { name: '音乐 7', path: '/music/1521237415.mp3' },
-    { name: '音乐 8', path: '/music/1889406312.mp3' },
-    { name: '音乐 9', path: '/music/2044197871.mp3' },
-    { name: '音乐 10', path: '/music/2095703260.mp3' },
-    { name: '音乐 11', path: '/music/2640583885.mp3' },
-    { name: '音乐 12', path: '/music/292700883.mp3' },
-    { name: '音乐 13', path: '/music/2958697143.mp3' },
-    { name: '音乐 14', path: '/music/349676572.mp3' },
-    { name: '音乐 15', path: '/music/M500000AZdTD09A7jL.mp3' },
-    { name: '音乐 16', path: '/music/M500000DOpDe2GfLaq.mp3' },
-    { name: '音乐 17', path: '/music/M500000ZNCIp1jrP7X.mp3' },
-    { name: '音乐 18', path: '/music/M500000bYDlc2XxKLs.mp3' },
-    { name: '音乐 19', path: '/music/M500000gGqwl19VBA4.mp3' },
-    { name: '音乐 20', path: '/music/M500000mfmWj21qzTt.mp3' },
-    { name: '音乐 21', path: '/music/M5000017K7gL4WYnw2 (1).mp3' },
-    { name: '音乐 22', path: '/music/M5000017K7gL4WYnw2.mp3' },
-    { name: '音乐 23', path: '/music/M500001ldhgp3VP4iO.mp3' },
-    { name: '音乐 24', path: '/music/M500001ormn821aChr.mp3' },
-    { name: '音乐 25', path: '/music/M500001r8VMR24xJHa.mp3' },
-    { name: '音乐 26', path: '/music/M500001xjGaz08GAGC.mp3' },
-    { name: '音乐 27', path: '/music/M500001ziKgJ3o5Ipp.mp3' },
-    { name: '音乐 28', path: '/music/M500002kr0ss3h76nL.mp3' },
-    { name: '音乐 29', path: '/music/M500003aAYrm3GE0Ac.mp3' },
-    { name: '音乐 30', path: '/music/M500003c89uw1rfLwc.mp3' },
-    { name: '音乐 31', path: '/music/M500004Yi5BD3ksoAN.mp3' },
-    { name: '音乐 32', path: '/music/M500004Z8Ihr0JIu5s.mp3' }
-  ]
+  const customPlaylist = ref(loadCustomPlaylist() || [])
+  const playlist = computed(() => {
+    if (customPlaylist.value.length > 0) return customPlaylist.value
+    return DEFAULT_PLAYLIST
+  })
 
   const savedState = loadBgmState()
-  
+
   const bgmEnabled = ref(savedState?.enabled ?? true)
   const bgmLoading = ref(false)
   const currentTrackIndex = ref(savedState?.trackIndex ?? 0)
@@ -71,13 +63,13 @@ export const useBgmStore = defineStore('bgm', () => {
   const showPlaylist = ref(false)
   const currentTime = ref(savedState?.currentTime ?? 0)
   const wasPlaying = ref(savedState?.wasPlaying ?? false)
-  
+
   let audio = null
   let noticeTimeout = null
   let progressInterval = null
 
-  const currentTrack = computed(() => playlist[currentTrackIndex.value])
-  const totalTracks = computed(() => playlist.length)
+  const currentTrack = computed(() => playlist.value[currentTrackIndex.value])
+  const totalTracks = computed(() => playlist.value.length)
 
   function saveState() {
     saveBgmState({
@@ -90,55 +82,39 @@ export const useBgmStore = defineStore('bgm', () => {
   }
 
   function getRandomTrackIndex() {
-    if (playlist.length <= 1) return 0
-    
+    if (playlist.value.length <= 1) return 0
     let newIndex
     do {
-      newIndex = Math.floor(Math.random() * playlist.length)
+      newIndex = Math.floor(Math.random() * playlist.value.length)
     } while (newIndex === currentTrackIndex.value)
-    
     return newIndex
   }
 
   function initAudio() {
     if (audio) return
-    
     audio = new Audio()
     audio.volume = volume.value
     audio.loop = false
-    
-    audio.addEventListener('ended', () => {
-      playNext()
-    })
-    audio.addEventListener('canplaythrough', () => {
-      bgmLoading.value = false
-    })
-    audio.addEventListener('play', () => {
-      isPlaying.value = true
-    })
-    audio.addEventListener('pause', () => {
-      isPlaying.value = false
-    })
+    audio.crossOrigin = 'anonymous'
+    audio.addEventListener('ended', playNext)
+    audio.addEventListener('canplaythrough', () => { bgmLoading.value = false })
+    audio.addEventListener('play', () => { isPlaying.value = true })
+    audio.addEventListener('pause', () => { isPlaying.value = false })
     audio.addEventListener('error', () => {
       showBgmNotice('音乐加载失败，尝试下一首')
       bgmLoading.value = false
       playNext()
     })
     audio.addEventListener('timeupdate', () => {
-      if (audio) {
-        currentTime.value = audio.currentTime
-      }
+      if (audio) currentTime.value = audio.currentTime
     })
-
     startProgressSaver()
   }
 
   function startProgressSaver() {
     if (progressInterval) clearInterval(progressInterval)
     progressInterval = setInterval(() => {
-      if (audio && isPlaying.value) {
-        saveState()
-      }
+      if (audio && isPlaying.value) saveState()
     }, 5000)
   }
 
@@ -146,29 +122,23 @@ export const useBgmStore = defineStore('bgm', () => {
     noticeText.value = text
     showNotice.value = true
     if (noticeTimeout) clearTimeout(noticeTimeout)
-    noticeTimeout = setTimeout(() => {
-      showNotice.value = false
-    }, 2000)
+    noticeTimeout = setTimeout(() => { showNotice.value = false }, 2000)
   }
 
   function playTrack(index, restoreTime = 0) {
     if (!audio) initAudio()
-    
     currentTrackIndex.value = index
-    
-    audio.src = playlist[index].path
-    
+    audio.src = playlist.value[index].url
     if (restoreTime > 0) {
       audio.addEventListener('loadedmetadata', function onLoaded() {
         audio.currentTime = restoreTime
         audio.removeEventListener('loadedmetadata', onLoaded)
       })
     }
-    
     audio.play().then(() => {
       bgmLoading.value = false
       isPlaying.value = true
-      showBgmNotice(`正在播放: ${playlist[index].name}`)
+      showBgmNotice(`正在播放: ${playlist.value[index].name}`)
       saveState()
     }).catch(() => {
       bgmLoading.value = false
@@ -180,9 +150,7 @@ export const useBgmStore = defineStore('bgm', () => {
 
   function playNext() {
     const nextIndex = getRandomTrackIndex()
-    if (bgmEnabled.value) {
-      playTrack(nextIndex)
-    }
+    if (bgmEnabled.value) playTrack(nextIndex)
   }
 
   function playPrev() {
@@ -192,17 +160,13 @@ export const useBgmStore = defineStore('bgm', () => {
 
   function setVolume(val) {
     volume.value = val
-    if (audio) {
-      audio.volume = val
-    }
+    if (audio) audio.volume = val
     saveState()
   }
 
   function toggleBGM() {
     if (bgmLoading.value) return
-    
     bgmEnabled.value = !bgmEnabled.value
-    
     if (bgmEnabled.value) {
       bgmLoading.value = true
       showBgmNotice('正在加载音乐...')
@@ -216,34 +180,25 @@ export const useBgmStore = defineStore('bgm', () => {
 
   function togglePlayPause() {
     if (!audio) {
-      if (bgmEnabled.value) {
-        playTrack(currentTrackIndex.value)
-      }
+      if (bgmEnabled.value) playTrack(currentTrackIndex.value)
       return
     }
-    
-    if (isPlaying.value) {
-      audio.pause()
-    } else {
-      audio.play().catch(() => {})
-    }
+    if (isPlaying.value) audio.pause()
+    else audio.play().catch(() => {})
     saveState()
   }
 
   function startBGM() {
     if (!bgmEnabled.value) return
     if (!audio) initAudio()
-    
     bgmLoading.value = true
-    
-    const savedState = loadBgmState()
-    const restoreTime = savedState?.currentTime || 0
-    
-    if (savedState?.wasPlaying) {
+    const saved = loadBgmState()
+    const restoreTime = saved?.currentTime || 0
+    if (saved?.wasPlaying) {
       playTrack(currentTrackIndex.value, restoreTime)
     } else {
       if (!audio.src) {
-        audio.src = playlist[currentTrackIndex.value].path
+        audio.src = playlist.value[currentTrackIndex.value].url
         if (restoreTime > 0) {
           audio.addEventListener('loadedmetadata', function onLoaded() {
             audio.currentTime = restoreTime
@@ -265,16 +220,12 @@ export const useBgmStore = defineStore('bgm', () => {
   }
 
   function pauseBGM() {
-    if (audio) {
-      audio.pause()
-    }
+    if (audio) audio.pause()
     saveState()
   }
 
   function resumeBGM() {
-    if (audio && bgmEnabled.value) {
-      audio.play().catch(() => {})
-    }
+    if (audio && bgmEnabled.value) audio.play().catch(() => {})
   }
 
   function togglePlaylist() {
@@ -286,7 +237,26 @@ export const useBgmStore = defineStore('bgm', () => {
     showPlaylist.value = false
   }
 
+  function setCustomPlaylist(tracks) {
+    customPlaylist.value = tracks
+    saveCustomPlaylist(tracks)
+    currentTrackIndex.value = 0
+    if (isPlaying.value && audio) {
+      playTrack(0)
+    }
+  }
+
+  function resetToDefaultPlaylist() {
+    customPlaylist.value = []
+    localStorage.removeItem('bgm_custom_playlist')
+    currentTrackIndex.value = 0
+    if (isPlaying.value && audio) {
+      playTrack(0)
+    }
+  }
+
   return {
+    customPlaylist,
     playlist,
     bgmEnabled,
     bgmLoading,
@@ -312,6 +282,8 @@ export const useBgmStore = defineStore('bgm', () => {
     setVolume,
     togglePlaylist,
     selectTrack,
+    setCustomPlaylist,
+    resetToDefaultPlaylist,
     saveState
   }
 })
