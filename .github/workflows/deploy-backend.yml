@@ -1,0 +1,49 @@
+name: Deploy Backend to Alibaba Cloud FC
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Build Backend
+        working-directory: backend
+        run: |
+          mvn clean package -DskipTests
+          mkdir -p deploy
+          cp target/yaoyao-memorial-3.0.0.jar deploy/
+          cp -r src/main/resources deploy/
+      
+      - name: Deploy to Alibaba Cloud FC
+        uses: aliyun/funcraft-deploy@v1
+        with:
+          access-key-id: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
+          access-key-secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
+          region: cn-hangzhou
+          service-name: yaoyao-memorial
+          function-name: api
+          runtime: java17
+          handler: com.yaoyao.YaoyaoApplication::main
+          code-uri: backend/deploy
+          environment:
+            DB_HOST: ${{ secrets.DB_HOST }}
+            DB_PORT: ${{ secrets.DB_PORT }}
+            DB_NAME: ${{ secrets.DB_NAME }}
+            DB_USERNAME: ${{ secrets.DB_USERNAME }}
+            DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+            JWT_SECRET: ${{ secrets.JWT_SECRET }}
+            ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

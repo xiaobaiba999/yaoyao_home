@@ -1,0 +1,1232 @@
+<template>
+  <div class="album-page">
+    <div class="page-header">
+      <button class="back-btn" @click="goBack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>返回</span>
+      </button>
+      <h1 class="page-title">相册</h1>
+      <span class="photo-count">{{ photos.length }} 张</span>
+    </div>
+    
+    <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="handleFileSelect" />
+    
+    <div class="page-content">
+      <div v-if="isLoading" class="skeleton-grid">
+        <div v-for="i in 6" :key="i" class="skeleton-item">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-text"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div v-else-if="photos.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <p class="empty-text">还没有照片</p>
+        <p class="empty-hint">点击下方按钮上传第一张照片吧</p>
+      </div>
+      
+      <div v-else class="photo-grid">
+        <div 
+          v-for="(photo, index) in photos" 
+          :key="photo.id"
+          class="photo-item"
+        >
+          <div class="photo-image-wrapper" @click="openViewer(index)">
+            <div class="image-placeholder" :class="{ hidden: loadedImages[photo.id] }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <img 
+              :src="getThumbnailUrl(photo.url)" 
+              :alt="photo.description || '照片'" 
+              loading="lazy"
+              :class="{ loaded: loadedImages[photo.id] }"
+              @load="onImageLoad(photo.id)"
+              @error="onImageError(photo.id)"
+            />
+          </div>
+          <div class="photo-info">
+            <p class="photo-description">{{ photo.description || '无描述' }}</p>
+            <button class="photo-delete-btn" @click.stop="confirmDelete(photo.id)" title="删除">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="page-footer">
+      <button class="upload-btn" @click="triggerUpload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>上传图片</span>
+      </button>
+    </div>
+    
+    <Transition name="modal-fade">
+      <div v-if="showUploadModal" class="modal-overlay" @click="cancelUpload">
+        <div class="upload-dialog" @click.stop>
+          <div class="modal-header">
+            <h3 class="modal-title">上传照片</h3>
+            <button class="modal-close" @click="cancelUpload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="preview-container">
+              <img :src="previewUrl" alt="预览" class="preview-image" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">照片描述</label>
+              <input 
+                v-model="uploadDescription" 
+                type="text" 
+                placeholder="为照片添加描述（最多20字）..."
+                class="form-input"
+                maxlength="20"
+              />
+              <span class="char-count">{{ uploadDescription.length }}/20</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="modal-btn cancel" @click="cancelUpload">取消</button>
+            <button class="modal-btn confirm" @click="executeUpload" :disabled="isUploading">
+              {{ isUploading ? '上传中...' : '确认上传' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+    
+    <Transition name="viewer-fade">
+      <div v-if="showViewer" class="viewer-overlay" @click="closeViewer">
+        <div class="viewer-header">
+          <button class="viewer-close" @click="closeViewer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <span class="viewer-counter">{{ viewerIndex + 1 }} / {{ photos.length }}</span>
+          <button class="viewer-delete" @click.stop="confirmDeleteFromViewer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="viewer-content" @click.stop>
+          <button class="viewer-nav prev" @click="prevPhoto" :disabled="photos.length <= 1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          
+          <div class="viewer-image-wrapper">
+            <div v-if="!viewerImageLoaded" class="viewer-loader">
+              <div class="loader-spinner"></div>
+            </div>
+            <img 
+              :src="currentPhoto?.url" 
+              :alt="currentPhoto?.description || '照片'" 
+              class="viewer-image"
+              :class="{ visible: viewerImageLoaded }"
+              @load="viewerImageLoaded = true"
+            />
+            <div v-if="currentPhoto?.description" class="viewer-description">
+              {{ currentPhoto.description }}
+            </div>
+          </div>
+          
+          <button class="viewer-nav next" @click="nextPhoto" :disabled="photos.length <= 1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="viewer-thumbnails">
+          <div 
+            v-for="(photo, index) in photos" 
+            :key="photo.id"
+            class="thumbnail-item"
+            :class="{ active: index === viewerIndex }"
+            @click.stop="goToPhoto(index)"
+          >
+            <img :src="getThumbnailUrl(photo.url)" :alt="photo.description || '照片'" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+    
+    <Transition name="modal-fade">
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
+        <div class="confirm-dialog" @click.stop>
+          <div class="confirm-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <h3 class="confirm-title">确认删除</h3>
+          <p class="confirm-message">确定要删除这张照片吗？此操作无法撤销。</p>
+          <div class="confirm-actions">
+            <button class="confirm-btn cancel" @click="cancelDelete">取消</button>
+            <button class="confirm-btn delete" @click="executeDelete">确认删除</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getPhotos, uploadPhoto, deletePhoto, validateFileSize } from '@/api/photos'
+import { ElMessage } from 'element-plus'
+
+const router = useRouter()
+const photos = ref([])
+const isLoading = ref(true)
+const loadedImages = ref({})
+
+const fileInput = ref(null)
+const showUploadModal = ref(false)
+const showDeleteConfirm = ref(false)
+const selectedFile = ref(null)
+const previewUrl = ref('')
+const uploadDescription = ref('')
+const isUploading = ref(false)
+const deleteTargetId = ref(null)
+
+const showViewer = ref(false)
+const viewerIndex = ref(0)
+const viewerImageLoaded = ref(false)
+
+const currentPhoto = computed(() => photos.value[viewerIndex.value])
+
+function getThumbnailUrl(url) {
+  if (!url) return ''
+  if (url.includes('supabase.co')) {
+    return url + '?width=300&height=300&resize=cover'
+  }
+  if (url.includes('gitee.com')) {
+    return url
+  }
+  return url
+}
+
+function onImageLoad(id) {
+  loadedImages.value[id] = true
+}
+
+function onImageError(id) {
+  loadedImages.value[id] = true
+}
+
+function openViewer(index) {
+  viewerIndex.value = index
+  viewerImageLoaded.value = false
+  showViewer.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closeViewer() {
+  showViewer.value = false
+  document.body.style.overflow = ''
+}
+
+function prevPhoto() {
+  if (photos.value.length <= 1) return
+  viewerIndex.value = viewerIndex.value === 0 
+    ? photos.value.length - 1 
+    : viewerIndex.value - 1
+  viewerImageLoaded.value = false
+}
+
+function nextPhoto() {
+  if (photos.value.length <= 1) return
+  viewerIndex.value = viewerIndex.value === photos.value.length - 1 
+    ? 0 
+    : viewerIndex.value + 1
+  viewerImageLoaded.value = false
+}
+
+function goToPhoto(index) {
+  viewerIndex.value = index
+  viewerImageLoaded.value = false
+}
+
+async function loadPhotos() {
+  isLoading.value = true
+  try {
+    photos.value = await getPhotos()
+  } catch (e) {
+    console.error('加载照片失败', e)
+    photos.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function triggerUpload() {
+  fileInput.value?.click()
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  
+  const validation = validateFileSize(file)
+  if (!validation.valid) {
+    ElMessage.warning(validation.error)
+    return
+  }
+  
+  selectedFile.value = file
+  previewUrl.value = URL.createObjectURL(file)
+  uploadDescription.value = ''
+  showUploadModal.value = true
+  
+  e.target.value = ''
+}
+
+function cancelUpload() {
+  showUploadModal.value = false
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = ''
+  }
+  selectedFile.value = null
+  uploadDescription.value = ''
+}
+
+async function executeUpload() {
+  if (!selectedFile.value || isUploading.value) return
+
+  isUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('photo', selectedFile.value)
+    formData.append('description', uploadDescription.value.trim() || '')
+
+    const photo = await uploadPhoto(formData)
+    photos.value.unshift(photo)
+
+    cancelUpload()
+    ElMessage.success('上传成功')
+  } catch (e) {
+    console.error('上传照片失败', e)
+    ElMessage.error('上传失败，请重试')
+  } finally {
+    isUploading.value = false
+  }
+}
+
+function confirmDelete(id) {
+  deleteTargetId.value = id
+  showDeleteConfirm.value = true
+}
+
+function confirmDeleteFromViewer() {
+  if (currentPhoto.value) {
+    deleteTargetId.value = currentPhoto.value.id
+    showDeleteConfirm.value = true
+  }
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
+}
+
+async function executeDelete() {
+  if (!deleteTargetId.value) return
+  
+  try {
+    await deletePhoto(deleteTargetId.value)
+    const index = photos.value.findIndex(p => p.id === deleteTargetId.value)
+    if (index > -1) {
+      const photoId = photos.value[index].id
+      delete loadedImages.value[photoId]
+      photos.value.splice(index, 1)
+      if (showViewer.value) {
+        if (photos.value.length === 0) {
+          closeViewer()
+        } else if (viewerIndex.value >= photos.value.length) {
+          viewerIndex.value = photos.value.length - 1
+        }
+      }
+    }
+  } catch (e) {
+    console.error('删除照片失败', e)
+    ElMessage.error('删除失败，请重试')
+  }
+  
+  cancelDelete()
+}
+
+function goBack() {
+  router.push('/')
+}
+
+function handleKeydown(e) {
+  if (showViewer.value) {
+    if (e.key === 'ArrowLeft') {
+      prevPhoto()
+    } else if (e.key === 'ArrowRight') {
+      nextPhoto()
+    } else if (e.key === 'Escape') {
+      closeViewer()
+    }
+  }
+}
+
+watch(viewerIndex, () => {
+  viewerImageLoaded.value = false
+})
+
+onMounted(() => {
+  loadPhotos()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+  }
+})
+</script>
+
+<style scoped>
+.album-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding-top: 60px;
+  padding-bottom: 80px;
+}
+
+.page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(250, 248, 245, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: var(--color-pink-light);
+  color: var(--color-pink);
+}
+
+.back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.page-title {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--color-title);
+}
+
+.photo-count {
+  font-size: 13px;
+  color: var(--color-text-light);
+  background: var(--color-bg-secondary);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.page-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: calc(100vh - 140px);
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.skeleton-item {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.skeleton-image {
+  aspect-ratio: 1;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-info {
+  padding: 8px 10px;
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 60%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  color: var(--color-border);
+}
+
+.empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-text {
+  font-size: 1.1rem;
+  color: var(--color-text-light);
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  font-size: 0.9rem;
+  color: var(--color-border);
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.photo-item {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.photo-item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.photo-image-wrapper {
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-bg-secondary);
+  position: relative;
+}
+
+.image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+  transition: opacity 0.3s ease;
+}
+
+.image-placeholder svg {
+  width: 40px;
+  height: 40px;
+  color: var(--color-border);
+}
+
+.image-placeholder.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photo-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.photo-image-wrapper img.loaded {
+  opacity: 1;
+}
+
+.photo-image-wrapper:hover img {
+  transform: scale(1.05);
+}
+
+.photo-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.photo-description {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.photo-delete-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.5;
+}
+
+.photo-delete-btn:hover {
+  background: #ffe0e0;
+  opacity: 1;
+}
+
+.photo-delete-btn svg {
+  width: 16px;
+  height: 16px;
+  color: #ff6b6b;
+}
+
+.page-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(250, 248, 245, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--color-border);
+  z-index: 100;
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-pink);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 25px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(200, 160, 160, 0.3);
+}
+
+.upload-btn:hover {
+  background: var(--color-pink-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(200, 160, 160, 0.4);
+}
+
+.upload-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.upload-dialog {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--color-title);
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.modal-close svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.preview-container {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: var(--color-bg-tertiary);
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  padding-right: 50px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-pink);
+}
+
+.char-count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  font-size: 12px;
+  color: var(--color-text-lighter);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.modal-btn.cancel {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--color-border);
+}
+
+.modal-btn.confirm {
+  background: var(--color-pink);
+  color: white;
+}
+
+.modal-btn.confirm:hover:not(:disabled) {
+  background: var(--color-pink-dark);
+}
+
+.modal-btn.confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  color: #ff6b6b;
+}
+
+.confirm-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.confirm-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-title);
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.confirm-btn.cancel {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+.confirm-btn.cancel:hover {
+  background: var(--color-border);
+}
+
+.confirm-btn.delete {
+  background: #ff6b6b;
+  color: white;
+}
+
+.confirm-btn.delete:hover {
+  background: #ee5a5a;
+}
+
+.viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  color: white;
+}
+
+.viewer-close,
+.viewer-delete {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.viewer-close:hover,
+.viewer-delete:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.viewer-close svg,
+.viewer-delete svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.viewer-counter {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.viewer-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  position: relative;
+}
+
+.viewer-nav {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.viewer-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.viewer-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.viewer-nav svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.viewer-image-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-height: 100%;
+  padding: 0 16px;
+  position: relative;
+}
+
+.viewer-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  object-fit: contain;
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.viewer-image.visible {
+  opacity: 1;
+}
+
+.viewer-description {
+  margin-top: 16px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: white;
+  font-size: 14px;
+  max-width: 80%;
+  text-align: center;
+}
+
+.viewer-thumbnails {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  justify-content: center;
+}
+
+.thumbnail-item {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+}
+
+.thumbnail-item:hover {
+  opacity: 0.8;
+}
+
+.thumbnail-item.active {
+  opacity: 1;
+  border-color: var(--color-pink);
+}
+
+.thumbnail-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.viewer-fade-enter-active,
+.viewer-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.viewer-fade-enter-from,
+.viewer-fade-leave-to {
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .skeleton-grid,
+  .photo-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .photo-info {
+    padding: 6px 8px;
+  }
+  
+  .photo-description {
+    font-size: 11px;
+  }
+  
+  .photo-delete-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .photo-delete-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .viewer-nav {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .viewer-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .viewer-thumbnails {
+    padding: 12px 16px;
+  }
+  
+  .thumbnail-item {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-content {
+    padding: 10px;
+  }
+  
+  .skeleton-grid,
+  .photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .photo-info {
+    padding: 5px 6px;
+  }
+  
+  .photo-description {
+    font-size: 10px;
+  }
+  
+  .photo-delete-btn {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .photo-delete-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .viewer-nav {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .viewer-description {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+  
+  .thumbnail-item {
+    width: 45px;
+    height: 45px;
+  }
+}
+</style>

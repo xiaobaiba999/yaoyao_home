@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+*/dist/
+build/
+*/build/
+
+# Java
+target/
+*.jar
+*.class
+*.pak
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Music UI project
+music-ui/
+
+# Deploy build artifacts
+deploy/frontend/
+
+# Electron release
+frontend/release/
+frontend/dist.tar.gz
+frontend/android/
+
+# Trae specs
+.trae/
+
+# Large media files - use cloud storage instead
+*.mp3
+*.mp4
+*.wav
+*.flac
+*.avi
+*.mov
+
+# Source maps
+*.map
+
+# Package locks
+package-lock.json
+*/package-lock.json

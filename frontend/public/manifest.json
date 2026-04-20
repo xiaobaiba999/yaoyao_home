@@ -1,0 +1,33 @@
+{
+  "name": "瑶瑶纪念空间",
+  "short_name": "瑶瑶空间",
+  "description": "专属我们的美好时光 - 情侣纪念应用",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff6b9d",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "https://hrgvzislldxuedolwnqm.supabase.co/storage/v1/object/public/photos/388923e6610134e24725d98e26d09db7.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "https://hrgvzislldxuedolwnqm.supabase.co/storage/v1/object/public/photos/388923e6610134e24725d98e26d09db7.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://hrgvzislldxuedolwnqm.supabase.co/storage/v1/object/public/photos/388923e6610134e24725d98e26d09db7.jpg",
+      "sizes": "180x180",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["lifestyle", "social"]
+}

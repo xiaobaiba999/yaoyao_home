@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": null,
+  "installCommand": "npm install",
+  "env": {
+    "VITE_API_URL": "https://api-chguiwvisu.cn-hangzhou.fcapp.run"
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

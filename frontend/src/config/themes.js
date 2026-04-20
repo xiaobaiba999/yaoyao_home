@@ -1,0 +1,191 @@
+export const themePresets = {
+  romantic: {
+    id: 'romantic',
+    name: '浪漫粉',
+    icon: '💕',
+    description: '温柔浪漫的粉色系，适合甜蜜时光',
+    mode: 'light',
+    colors: {
+      bg: '#FFF5F5',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#FFF0F0',
+      accent: '#E8A0B0',
+      accentLight: '#F5C8D0',
+      accentLighter: '#FDE8EC',
+      accentDark: '#C87888',
+      pink: '#F0B0B8',
+      pinkLight: '#F8D0D5',
+      pinkDark: '#D08890',
+      text: '#4A3A3A',
+      textLight: '#8A7070',
+      textLighter: '#B8A0A0',
+      title: '#3A2828',
+      titleLight: '#5A4040',
+      border: '#F0D8D8',
+      borderLight: '#F8E8E8',
+      white: '#FFFFFF',
+      shadow: 'rgba(200, 120, 136, 0.08)',
+      shadowHover: 'rgba(200, 120, 136, 0.14)'
+    }
+  },
+  fresh: {
+    id: 'fresh',
+    name: '清新蓝',
+    icon: '🌿',
+    description: '清新自然的蓝色系，如沐春风',
+    mode: 'light',
+    colors: {
+      bg: '#F5F9FC',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#EDF4F8',
+      accent: '#7AB8D0',
+      accentLight: '#A8D4E4',
+      accentLighter: '#D4ECF4',
+      accentDark: '#5A98B0',
+      pink: '#90C8D8',
+      pinkLight: '#B8E0EC',
+      pinkDark: '#70A8B8',
+      text: '#2A3A4A',
+      textLight: '#607080',
+      textLighter: '#98A8B8',
+      title: '#1A2838',
+      titleLight: '#3A4858',
+      border: '#D8E8F0',
+      borderLight: '#E8F0F5',
+      white: '#FFFFFF',
+      shadow: 'rgba(90, 152, 176, 0.08)',
+      shadowHover: 'rgba(90, 152, 176, 0.14)'
+    }
+  },
+  minimal: {
+    id: 'minimal',
+    name: '简约白',
+    icon: '✨',
+    description: '极简纯净的白色系，返璞归真',
+    mode: 'light',
+    colors: {
+      bg: '#FAFAFA',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#F2F2F2',
+      accent: '#A0A0A0',
+      accentLight: '#C8C8C8',
+      accentLighter: '#E8E8E8',
+      accentDark: '#787878',
+      pink: '#B0B0B0',
+      pinkLight: '#D0D0D0',
+      pinkDark: '#909090',
+      text: '#333333',
+      textLight: '#666666',
+      textLighter: '#999999',
+      title: '#1A1A1A',
+      titleLight: '#4A4A4A',
+      border: '#E8E8E8',
+      borderLight: '#F2F2F2',
+      white: '#FFFFFF',
+      shadow: 'rgba(0, 0, 0, 0.05)',
+      shadowHover: 'rgba(0, 0, 0, 0.10)'
+    }
+  },
+  warm: {
+    id: 'warm',
+    name: '暖阳橙',
+    icon: '🌅',
+    description: '温暖明亮的橙色系，如冬日暖阳',
+    mode: 'light',
+    colors: {
+      bg: '#FFFAF5',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#FFF5EC',
+      accent: '#E8A870',
+      accentLight: '#F0C898',
+      accentLighter: '#F8E4CC',
+      accentDark: '#C88850',
+      pink: '#F0B888',
+      pinkLight: '#F8D4B0',
+      pinkDark: '#D09868',
+      text: '#3A3020',
+      textLight: '#7A6850',
+      textLighter: '#B0A088',
+      title: '#2A2018',
+      titleLight: '#4A3828',
+      border: '#E8D8C8',
+      borderLight: '#F2E8DC',
+      white: '#FFFFFF',
+      shadow: 'rgba(200, 136, 80, 0.08)',
+      shadowHover: 'rgba(200, 136, 80, 0.14)'
+    }
+  },
+  lavender: {
+    id: 'lavender',
+    name: '薰衣紫',
+    icon: '💜',
+    description: '优雅梦幻的紫色系，浪漫如诗',
+    mode: 'light',
+    colors: {
+      bg: '#F8F5FC',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#F2ECF8',
+      accent: '#B898D0',
+      accentLight: '#D0B8E0',
+      accentLighter: '#E8D8F0',
+      accentDark: '#9878B0',
+      pink: '#C8A8D8',
+      pinkLight: '#E0C8EC',
+      pinkDark: '#A888B8',
+      text: '#3A2A4A',
+      textLight: '#705888',
+      textLighter: '#A890B8',
+      title: '#281A38',
+      titleLight: '#483858',
+      border: '#E0D0EC',
+      borderLight: '#EDE0F5',
+      white: '#FFFFFF',
+      shadow: 'rgba(152, 120, 176, 0.08)',
+      shadowHover: 'rgba(152, 120, 176, 0.14)'
+    }
+  },
+  dark: {
+    id: 'dark',
+    name: '暗夜黑',
+    icon: '🌙',
+    description: '深邃优雅的暗色系，护眼舒适',
+    mode: 'dark',
+    colors: {
+      bg: '#1A1A1E',
+      bgSecondary: '#242428',
+      bgTertiary: '#2E2E34',
+      accent: '#C8A0B0',
+      accentLight: '#A08090',
+      accentLighter: '#3A2A30',
+      accentDark: '#E0C0CC',
+      pink: '#B890A0',
+      pinkLight: '#907080',
+      pinkDark: '#D0A8B8',
+      text: '#C8C0C4',
+      textLight: '#908890',
+      textLighter: '#605860',
+      title: '#E8E0E4',
+      titleLight: '#B0A8B0',
+      border: '#3A3638',
+      borderLight: '#2E2A2C',
+      white: '#242428',
+      shadow: 'rgba(0, 0, 0, 0.20)',
+      shadowHover: 'rgba(0, 0, 0, 0.35)'
+    }
+  }
+}
+
+export const themeCategories = [
+  {
+    id: 'light',
+    name: '浅色主题',
+    themeIds: ['romantic', 'fresh', 'minimal', 'warm', 'lavender']
+  },
+  {
+    id: 'dark',
+    name: '深色主题',
+    themeIds: ['dark']
+  }
+]
+
+export const defaultThemeId = 'romantic'

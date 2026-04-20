@@ -1,0 +1,20 @@
+{
+  "version": "3.0.0",
+  "description": "Yaoyao Memorial Backend",
+  "main": "com.yaoyao.YaoyaoApplication",
+  "runtime": "java17",
+  "handler": "com.yaoyao.YaoyaoApplication",
+  "memorySize": 512,
+  "timeout": 30,
+  "environmentVariables": {
+    "SPRING_PROFILES_ACTIVE": "prod",
+    "DB_HOST": "${DB_HOST}",
+    "DB_PORT": "${DB_PORT}",
+    "DB_NAME": "${DB_NAME}",
+    "DB_USERNAME": "${DB_USERNAME}",
+    "DB_PASSWORD": "${DB_PASSWORD}",
+    "JWT_SECRET": "${JWT_SECRET}",
+    "ADMIN_PASSWORD": "${ADMIN_PASSWORD}",
+    "CORS_ORIGINS": "${CORS_ORIGINS}"
+  }
+}

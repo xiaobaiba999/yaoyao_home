@@ -1,0 +1,16 @@
+$schema: https://developers.cloudflare.com/pages/platform/build-configuration
+
+# Cloudflare Pages 配置
+# 前端项目配置
+
+projectName: yaoyao-memorial
+
+build:
+  command: cd frontend && npm install && npm run build
+  outputDirectory: frontend/dist
+  rootDirectory: /
+
+productionBranch: main
+
+# 禁用 Wrangler 部署命令
+# Pages 项目不需要 wrangler deploy

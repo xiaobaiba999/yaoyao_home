@@ -1,0 +1,43 @@
+server:
+  port: 3000
+
+spring:
+  application:
+    name: yaoyao-memorial
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/yaoyao_memorial?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_uuid
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+yaoyao:
+  jwt:
+    secret: yaoyao-memorial-secret-key-2024-hmac-sha256
+    expires-in: 604800000
+  admin:
+    username: yaoyao
+    password: yaoyao2024
+  gitee:
+    access-token: your_gitee_access_token
+    owner: your_gitee_username
+    repo: your_gitee_repo_name
+    base-url: https://gitee.com/api/v5
+    raw-url: https://gitee.com
+    path: images
+  cors:
+    allowed-origins: http://localhost:5173,https://liyaoyao.top,https://www.liyaoyao.top
