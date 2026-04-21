@@ -149,9 +149,9 @@
             <div v-if="!viewerImageLoaded" class="viewer-loader">
               <div class="loader-spinner"></div>
             </div>
-            <img 
-              :src="currentPhoto?.url" 
-              :alt="currentPhoto?.description || '照片'" 
+            <img
+              :src="getImageUrl(currentPhoto?.url)"
+              :alt="currentPhoto?.description || '照片'"
               class="viewer-image"
               :class="{ visible: viewerImageLoaded }"
               @load="viewerImageLoaded = true"
@@ -208,6 +208,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPhotos, uploadPhoto, deletePhoto, validateFileSize } from '@/api/photos'
+import { getImageUrl } from '@/api/request'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -232,13 +233,11 @@ const currentPhoto = computed(() => photos.value[viewerIndex.value])
 
 function getThumbnailUrl(url) {
   if (!url) return ''
-  if (url.includes('supabase.co')) {
-    return url + '?width=300&height=300&resize=cover'
+  const fullUrl = getImageUrl(url)
+  if (fullUrl.includes('supabase.co')) {
+    return fullUrl + '?width=300&height=300&resize=cover'
   }
-  if (url.includes('gitee.com')) {
-    return url
-  }
-  return url
+  return fullUrl
 }
 
 function onImageLoad(id) {

@@ -117,4 +117,19 @@ export function clearCache() {
   cache.clear()
 }
 
+export function getImageUrl(url) {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  if (url.startsWith('/uploads/')) {
+    if (import.meta.env.PROD) {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+      return baseUrl + url
+    }
+    return url
+  }
+  return url
+}
+
 export default request

@@ -3,47 +3,11 @@ import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'bgm_state'
 const CUSTOM_PLAYLIST_KEY = 'bgm_custom_playlist'
-const DATA_VERSION = 'v7.1'
+const DATA_VERSION = 'v10.0'
 const VERSION_KEY = 'bgm_data_version'
 
-const builtinPlaylist = [
-  { name: '晴天', artist: '周杰伦', id: 'm1' },
-  { name: '稻香', artist: '周杰伦', id: 'm2' },
-  { name: '花海', artist: '周杰伦', id: 'm3' },
-  { name: '发如雪', artist: '周杰伦', id: 'm4' },
-  { name: '反方向的钟', artist: '周杰伦', id: 'm5' },
-  { name: '给我一首歌的时间', artist: '周杰伦', id: 'm6' },
-  { name: '明明就', artist: '周杰伦', id: 'm7' },
-  { name: '蒲公英的约定', artist: '周杰伦', id: 'm8' },
-  { name: '一路向北', artist: '周杰伦', id: 'm9' },
-  { name: '修炼爱情', artist: '林俊杰', id: 'm10' },
-  { name: '有何不可', artist: '许嵩', id: 'm11' },
-  { name: '清明雨上', artist: '许嵩', id: 'm12' },
-  { name: '泡沫', artist: '邓紫棋', id: 'm13' },
-  { name: '绿光', artist: '孙燕姿', id: 'm14' },
-  { name: '开始懂了', artist: '孙燕姿', id: 'm15' },
-  { name: '我怀念的', artist: '孙燕姿', id: 'm16' },
-  { name: '遇见', artist: '孙燕姿', id: 'm17' },
-  { name: '爱丫爱丫', artist: 'BY2', id: 'm18' },
-  { name: '倒数', artist: '邓紫棋', id: 'm19' },
-  { name: '唯一', artist: '王力宏', id: 'm20' },
-  { name: '再见', artist: '邓紫棋', id: 'm21' },
-  { name: '过活', artist: '棉子', id: 'm22' },
-  { name: 'Aways online', artist: '林俊杰', id: 'm23' }
-]
-
-function buildPlaylistWithApiUrls() {
-  const API_BASE = import.meta.env.PROD
-    ? (import.meta.env.VITE_API_BASE_URL || 'https://your-backend-url.fcapp.run')
-    : ''
-
-  return builtinPlaylist.map(m => ({
-    ...m,
-    url: `${API_BASE}/api/music/play/${m.id}`
-  }))
-}
-
-const playlistWithUrls = buildPlaylistWithUrls()
+// 音乐服务地址
+const MUSIC_SERVICE_URL = import.meta.env.VITE_MUSIC_SERVICE_URL || 'http://localhost:8088'
 
 export const useBgmStore = defineStore('bgm', () => {
   const bgmEnabled = ref(true)
@@ -58,7 +22,7 @@ export const useBgmStore = defineStore('bgm', () => {
   const hasUserInteracted = ref(false)
 
   let audio = null
-  let playlist = [...playlistWithUrls]
+  let playlist = []
   let noticeTimer = null
   let playLock = false
   let retryCount = 0
@@ -78,13 +42,28 @@ export const useBgmStore = defineStore('bgm', () => {
   async function initFromAPI() {
     if (apiLoaded.value) return
     try {
-      playlist = [...playlistWithUrls]
+      const response = await fetch(`${MUSIC_SERVICE_URL}/api/music/list`)
+      const result = await response.json()
+      
+      if (result.code === 200 && result.data) {
+        playlist = result.data.map(m => ({
+          id: `music-${m.id}`,
+          name: m.name,
+          artist: m.artist,
+          url: m.fileUrl
+        }))
+      }
+      
+      const customTracks = customPlaylist.value.map(t => ({ ...t }))
+      playlist = [...playlist, ...customTracks]
+      
       apiLoaded.value = true
       if (playlist.length > 0 && currentTrackIndex.value >= playlist.length) {
         currentTrackIndex.value = 0
       }
     } catch (e) {
-      playlist = [...playlistWithUrls]
+      console.error('加载音乐列表失败:', e)
+      playlist = []
       apiLoaded.value = true
     }
   }
@@ -101,12 +80,13 @@ export const useBgmStore = defineStore('bgm', () => {
       })
 
       audio.addEventListener('error', (e) => {
-        console.error('播放失败:', e)
+        console.error('播放错误:', audio.error)
         bgmLoading.value = false
         isPlaying.value = false
         retryCount++
         if (retryCount <= MAX_RETRIES) {
-          setTimeout(() => playNext(), 3000)
+          console.log(`重试第${retryCount}次...`)
+          setTimeout(() => playNext(), 1000)
         } else {
           console.log('达到最大重试次数，停止播放')
           retryCount = 0
@@ -128,23 +108,27 @@ export const useBgmStore = defineStore('bgm', () => {
       await initFromAPI()
     }
 
-    if (index < 0 || index >= playlist.length) return
+    if (index < 0 || index >= playlist.length) {
+      console.log('索引超出范围:', index, '播放列表长度:', playlist.length)
+      return
+    }
 
     playLock = true
     currentTrackIndex.value = index
     const track = playlist[index]
     if (!track || !track.url) {
+      console.log('歌曲URL为空:', track)
       playLock = false
       playNext()
       return
     }
 
+    console.log('正在播放:', track.name, track.artist)
     const a = ensureAudio()
     bgmLoading.value = true
 
     try {
       a.src = track.url
-      await a.load()
       await a.play()
       isPlaying.value = true
       bgmLoading.value = false
@@ -169,19 +153,23 @@ export const useBgmStore = defineStore('bgm', () => {
       
       retryCount++
       if (retryCount <= MAX_RETRIES) {
-        setTimeout(() => playNext(), 3000)
+        setTimeout(() => playNext(), 1000)
       }
     }
   }
 
   function setUserInteracted() {
-    hasUserInteracted.value = true
+    if (!hasUserInteracted.value) {
+      hasUserInteracted.value = true
+      // 用户首次交互后自动播放
+      setTimeout(() => {
+        playTrack(currentTrackIndex.value)
+      }, 100)
+    }
   }
 
   function togglePlayPause() {
-    if (!hasUserInteracted.value) {
-      hasUserInteracted.value = true
-    }
+    setUserInteracted()
 
     const a = ensureAudio()
     if (isPlaying.value) {
@@ -189,8 +177,9 @@ export const useBgmStore = defineStore('bgm', () => {
       isPlaying.value = false
     } else {
       if (a.src) {
-        a.play().catch(() => {
-          console.log('自动播放被阻止，等待用户点击')
+        a.play().catch((err) => {
+          console.log('播放失败，尝试下一首:', err)
+          playNext()
         })
         isPlaying.value = true
       } else {
@@ -214,7 +203,8 @@ export const useBgmStore = defineStore('bgm', () => {
       nextIndex = (currentTrackIndex.value + 1) % playlist.length
     }
 
-    setTimeout(() => playTrack(nextIndex), 500)
+    console.log('切换下一首，索引:', nextIndex)
+    playTrack(nextIndex)
   }
 
   function playPrev() {

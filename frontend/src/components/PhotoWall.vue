@@ -13,7 +13,7 @@
             :key="photo.id" 
             class="carousel-slide"
           >
-            <img :src="photo.url" :alt="photo.originalName" @click="openPreview(index)" />
+            <img :src="getImageUrl(photo.url)" :alt="photo.originalName" @click="openPreview(index)" />
           </div>
         </div>
         
@@ -63,7 +63,7 @@
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
-        <img :src="photos[previewIndex]?.url" class="preview-image" @click.stop />
+        <img :src="getImageUrl(photos[previewIndex]?.url)" class="preview-image" @click.stop />
         <button class="preview-btn next" @click.stop="nextPhoto">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="9 18 15 12 9 6"></polyline>
@@ -78,6 +78,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getPhotos, uploadPhoto } from '@/api/photos'
+import { getImageUrl } from '@/api/request'
 
 const photos = ref([])
 const fileInput = ref(null)
