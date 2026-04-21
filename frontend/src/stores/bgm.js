@@ -35,11 +35,11 @@ const builtinPlaylist = [
 function buildPlaylistWithApiUrls() {
   const API_BASE = import.meta.env.PROD
     ? (import.meta.env.VITE_API_BASE_URL || 'https://your-backend-url.fcapp.run')
-    : '/api'
+    : ''
 
   return builtinPlaylist.map(m => ({
     ...m,
-    url: `${API_BASE}/music/play/${m.id}`
+    url: `${API_BASE}/api/music/play/${m.id}`
   }))
 }
 
