@@ -33,7 +33,9 @@ const isLoginPage = computed(() => route.path === '/login')
 function handleFirstInteraction() {
   if (!hasInteracted.value && bgmStore.bgmEnabled && !bgmStore.isPlaying) {
     hasInteracted.value = true
-    bgmStore.startBGM()
+    if (bgmStore.playlist.length > 0) {
+      bgmStore.playTrack(bgmStore.currentTrackIndex)
+    }
   }
 }
 

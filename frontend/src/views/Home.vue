@@ -49,10 +49,10 @@ import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 
 const bgmStore = useBgmStore()
 
-onMounted(() => {
-  bgmStore.initAudio()
-  if (bgmStore.bgmEnabled) {
-    bgmStore.startBGM()
+onMounted(async () => {
+  await bgmStore.initFromAPI()
+  if (bgmStore.bgmEnabled && bgmStore.playlist.length > 0) {
+    bgmStore.playTrack(bgmStore.currentTrackIndex)
   }
 })
 </script>
