@@ -10,9 +10,16 @@
       <h1 class="page-title">相册</h1>
       <span class="photo-count">{{ photos.length }} 张</span>
     </div>
-    
-    <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="handleFileSelect" />
-    
+
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      multiple
+      style="display: none"
+      @change="handleFileSelect"
+    />
+
     <div class="page-content">
       <div v-if="isLoading" class="skeleton-grid">
         <div v-for="i in 6" :key="i" class="skeleton-item">
@@ -22,7 +29,7 @@
           </div>
         </div>
       </div>
-      
+
       <div v-else-if="photos.length === 0" class="empty-state">
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -34,10 +41,10 @@
         <p class="empty-text">还没有照片</p>
         <p class="empty-hint">点击下方按钮上传第一张照片吧</p>
       </div>
-      
+
       <div v-else class="photo-grid">
-        <div 
-          v-for="(photo, index) in photos" 
+        <div
+          v-for="(photo, index) in photos"
           :key="photo.id"
           class="photo-item"
         >
@@ -49,9 +56,9 @@
                 <polyline points="21 15 16 10 5 21"></polyline>
               </svg>
             </div>
-            <img 
-              :src="getThumbnailUrl(photo.url)" 
-              :alt="photo.description || '照片'" 
+            <img
+              :src="getThumbnailUrl(photo.url)"
+              :alt="photo.description || '照片'"
               loading="lazy"
               :class="{ loaded: loadedImages[photo.id] }"
               @load="onImageLoad(photo.id)"
@@ -70,7 +77,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="page-footer">
       <button class="upload-btn" @click="triggerUpload">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -79,14 +86,15 @@
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
         <span>上传图片</span>
+        <span class="upload-hint">最多9张</span>
       </button>
     </div>
-    
+
     <Transition name="modal-fade">
-      <div v-if="showUploadModal" class="modal-overlay" @click="cancelUpload">
+      <div v-if="showUploadModal" class="modal-overlay" @click.self="cancelUpload">
         <div class="upload-dialog" @click.stop>
           <div class="modal-header">
-            <h3 class="modal-title">上传照片</h3>
+            <h3 class="modal-title">批量上传照片</h3>
             <button class="modal-close" @click="cancelUpload">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -95,15 +103,61 @@
             </button>
           </div>
           <div class="modal-body">
-            <div class="preview-container">
-              <img :src="previewUrl" alt="预览" class="preview-image" />
+            <div class="batch-preview-grid">
+              <div
+                v-for="(item, idx) in uploadQueue"
+                :key="idx"
+                class="batch-preview-item"
+                :class="{
+                  'upload-success': item.status === 'success',
+                  'upload-error': item.status === 'error',
+                  'uploading': item.status === 'uploading'
+                }"
+              >
+                <img :src="item.previewUrl" :alt="item.file.name" class="batch-thumb" />
+                <div class="batch-overlay" v-if="item.status === 'uploading'">
+                  <div class="progress-ring">
+                    <svg viewBox="0 0 36 36">
+                      <circle class="progress-bg" cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                      <circle class="progress-fill" cx="18" cy="18" r="16" fill="none" stroke="white" stroke-width="3"
+                        :stroke-dasharray="`${item.progress * 100.53} 100.53`"
+                        stroke-linecap="round"
+                        transform="rotate(-90 18 18)"/>
+                    </svg>
+                    <span class="progress-text">{{ Math.round(item.progress * 100) }}%</span>
+                  </div>
+                </div>
+                <div class="batch-status-icon" v-if="item.status === 'success'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="batch-status-icon error-icon" v-if="item.status === 'error'" :title="item.errorMsg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <button class="batch-remove" @click="removeFromQueue(idx)" v-if="item.status === 'pending'" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="batch-add-item" v-if="uploadQueue.length < MAX_BATCH" @click="addMoreFiles">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>添加</span>
+              </div>
             </div>
+
+            <div class="batch-summary" v-if="uploadQueue.length > 0">
+              <span>共 {{ uploadQueue.length }} 张</span>
+              <span v-if="successCount > 0" class="success-count">✓ {{ successCount }}</span>
+              <span v-if="errorCount > 0" class="error-count">✗ {{ errorCount }}</span>
+            </div>
+
             <div class="form-group">
-              <label class="form-label">照片描述</label>
-              <input 
-                v-model="uploadDescription" 
-                type="text" 
-                placeholder="为照片添加描述（最多20字）..."
+              <label class="form-label">照片描述（统一）</label>
+              <input
+                v-model="uploadDescription"
+                type="text"
+                placeholder="为这批照片添加描述（最多20字）..."
                 class="form-input"
                 maxlength="20"
               />
@@ -112,14 +166,18 @@
           </div>
           <div class="modal-footer">
             <button class="modal-btn cancel" @click="cancelUpload">取消</button>
-            <button class="modal-btn confirm" @click="executeUpload" :disabled="isUploading">
-              {{ isUploading ? '上传中...' : '确认上传' }}
+            <button
+              class="modal-btn confirm"
+              @click="executeBatchUpload"
+              :disabled="isUploading || pendingCount === 0"
+            >
+              {{ isUploading ? `上传中 (${successCount}/${uploadQueue.length})` : `上传 ${pendingCount} 张` }}
             </button>
           </div>
         </div>
       </div>
     </Transition>
-    
+
     <Transition name="viewer-fade">
       <div v-if="showViewer" class="viewer-overlay" @click="closeViewer">
         <div class="viewer-header">
@@ -137,14 +195,14 @@
             </svg>
           </button>
         </div>
-        
+
         <div class="viewer-content" @click.stop>
           <button class="viewer-nav prev" @click="prevPhoto" :disabled="photos.length <= 1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
-          
+
           <div class="viewer-image-wrapper">
             <div v-if="!viewerImageLoaded" class="viewer-loader">
               <div class="loader-spinner"></div>
@@ -160,17 +218,17 @@
               {{ currentPhoto.description }}
             </div>
           </div>
-          
+
           <button class="viewer-nav next" @click="nextPhoto" :disabled="photos.length <= 1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
         </div>
-        
+
         <div class="viewer-thumbnails">
-          <div 
-            v-for="(photo, index) in photos" 
+          <div
+            v-for="(photo, index) in photos"
             :key="photo.id"
             class="thumbnail-item"
             :class="{ active: index === viewerIndex }"
@@ -181,7 +239,7 @@
         </div>
       </div>
     </Transition>
-    
+
     <Transition name="modal-fade">
       <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
         <div class="confirm-dialog" @click.stop>
@@ -211,6 +269,10 @@ import { getPhotos, uploadPhoto, deletePhoto, validateFileSize } from '@/api/pho
 import { getImageUrl } from '@/api/request'
 import { ElMessage } from 'element-plus'
 
+const MAX_BATCH = 9
+const MAX_FILE_SIZE = 50 * 1024 * 1024
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 const router = useRouter()
 const photos = ref([])
 const isLoading = ref(true)
@@ -219,11 +281,15 @@ const loadedImages = ref({})
 const fileInput = ref(null)
 const showUploadModal = ref(false)
 const showDeleteConfirm = ref(false)
-const selectedFile = ref(null)
-const previewUrl = ref('')
 const uploadDescription = ref('')
 const isUploading = ref(false)
 const deleteTargetId = ref(null)
+
+const uploadQueue = ref([])
+
+const successCount = computed(() => uploadQueue.value.filter(i => i.status === 'success').length)
+const errorCount = computed(() => uploadQueue.value.filter(i => i.status === 'error').length)
+const pendingCount = computed(() => uploadQueue.value.filter(i => i.status === 'pending').length)
 
 const showViewer = ref(false)
 const viewerIndex = ref(0)
@@ -262,16 +328,16 @@ function closeViewer() {
 
 function prevPhoto() {
   if (photos.value.length <= 1) return
-  viewerIndex.value = viewerIndex.value === 0 
-    ? photos.value.length - 1 
+  viewerIndex.value = viewerIndex.value === 0
+    ? photos.value.length - 1
     : viewerIndex.value - 1
   viewerImageLoaded.value = false
 }
 
 function nextPhoto() {
   if (photos.value.length <= 1) return
-  viewerIndex.value = viewerIndex.value === photos.value.length - 1 
-    ? 0 
+  viewerIndex.value = viewerIndex.value === photos.value.length - 1
+    ? 0
     : viewerIndex.value + 1
   viewerImageLoaded.value = false
 }
@@ -298,52 +364,105 @@ function triggerUpload() {
 }
 
 function handleFileSelect(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  
-  const validation = validateFileSize(file)
-  if (!validation.valid) {
-    ElMessage.warning(validation.error)
-    return
-  }
-  
-  selectedFile.value = file
-  previewUrl.value = URL.createObjectURL(file)
-  uploadDescription.value = ''
-  showUploadModal.value = true
-  
+  const files = Array.from(e.target.files || [])
   e.target.value = ''
+  if (files.length === 0) return
+
+  const validFiles = []
+  const errors = []
+
+  for (const file of files) {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      errors.push(`${file.name}: 不支持的格式，仅支持 JPG/PNG/WebP`)
+      continue
+    }
+    const sizeCheck = validateFileSize(file, MAX_FILE_SIZE)
+    if (!sizeCheck.valid) {
+      errors.push(`${file.name}: ${sizeCheck.error}`)
+      continue
+    }
+    validFiles.push(file)
+  }
+
+  if (errors.length > 0) {
+    ElMessage.warning({ message: errors.slice(0, 3).join('\n'), duration: 4000 })
+  }
+
+  const remaining = MAX_BATCH - uploadQueue.value.length
+  const toAdd = validFiles.slice(0, remaining)
+
+  if (validFiles.length > remaining) {
+    ElMessage.info(`最多同时上传 ${MAX_BATCH} 张，已选取前 ${remaining} 张`)
+  }
+
+  for (const file of toAdd) {
+    uploadQueue.value.push({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: 'pending',
+      progress: 0,
+      errorMsg: ''
+    })
+  }
+
+  if (uploadQueue.value.length > 0 && !showUploadModal.value) {
+    showUploadModal.value = true
+    uploadDescription.value = ''
+  }
+}
+
+function addMoreFiles() {
+  fileInput.value?.click()
+}
+
+function removeFromQueue(idx) {
+  const item = uploadQueue.value[idx]
+  if (item.previewUrl) URL.revokeObjectURL(item.previewUrl)
+  uploadQueue.value.splice(idx, 1)
 }
 
 function cancelUpload() {
-  showUploadModal.value = false
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
-    previewUrl.value = ''
+  for (const item of uploadQueue.value) {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl)
   }
-  selectedFile.value = null
+  uploadQueue.value = []
+  showUploadModal.value = false
   uploadDescription.value = ''
 }
 
-async function executeUpload() {
-  if (!selectedFile.value || isUploading.value) return
+async function executeBatchUpload() {
+  const pendingItems = uploadQueue.value.filter(i => i.status === 'pending')
+  if (pendingItems.length === 0 || isUploading.value) return
 
   isUploading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('photo', selectedFile.value)
-    formData.append('description', uploadDescription.value.trim() || '')
 
-    const photo = await uploadPhoto(formData)
-    photos.value.unshift(photo)
+  for (const item of pendingItems) {
+    item.status = 'uploading'
+    item.progress = 0
 
-    cancelUpload()
-    ElMessage.success('上传成功')
-  } catch (e) {
-    console.error('上传照片失败', e)
-    ElMessage.error('上传失败，请重试')
-  } finally {
-    isUploading.value = false
+    try {
+      const formData = new FormData()
+      formData.append('photo', item.file)
+      formData.append('description', uploadDescription.value.trim() || '')
+
+      const photo = await uploadPhoto(formData)
+      item.status = 'success'
+      item.progress = 1
+      photos.value.unshift(photo)
+    } catch (e) {
+      console.error('上传照片失败', e)
+      item.status = 'error'
+      item.errorMsg = e.response?.data?.message || '上传失败'
+    }
+  }
+
+  isUploading.value = false
+
+  if (errorCount.value === 0) {
+    ElMessage.success(`成功上传 ${successCount.value} 张照片`)
+    setTimeout(() => cancelUpload(), 800)
+  } else {
+    ElMessage.warning(`${successCount.value} 张成功，${errorCount.value} 张失败`)
   }
 }
 
@@ -366,7 +485,7 @@ function cancelDelete() {
 
 async function executeDelete() {
   if (!deleteTargetId.value) return
-  
+
   try {
     await deletePhoto(deleteTargetId.value)
     const index = photos.value.findIndex(p => p.id === deleteTargetId.value)
@@ -386,7 +505,7 @@ async function executeDelete() {
     console.error('删除照片失败', e)
     ElMessage.error('删除失败，请重试')
   }
-  
+
   cancelDelete()
 }
 
@@ -396,13 +515,9 @@ function goBack() {
 
 function handleKeydown(e) {
   if (showViewer.value) {
-    if (e.key === 'ArrowLeft') {
-      prevPhoto()
-    } else if (e.key === 'ArrowRight') {
-      nextPhoto()
-    } else if (e.key === 'Escape') {
-      closeViewer()
-    }
+    if (e.key === 'ArrowLeft') prevPhoto()
+    else if (e.key === 'ArrowRight') nextPhoto()
+    else if (e.key === 'Escape') closeViewer()
   }
 }
 
@@ -417,9 +532,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
-  }
 })
 </script>
 
@@ -525,12 +637,8 @@ onUnmounted(() => {
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .empty-state {
@@ -590,10 +698,7 @@ onUnmounted(() => {
 
 .image-placeholder {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -713,12 +818,14 @@ onUnmounted(() => {
   height: 18px;
 }
 
+.upload-hint {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -731,9 +838,12 @@ onUnmounted(() => {
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
+  max-height: 85vh;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -742,6 +852,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -775,21 +886,160 @@ onUnmounted(() => {
 
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
-.preview-container {
-  width: 100%;
-  height: 200px;
-  border-radius: 12px;
+.batch-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.batch-preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 20px;
   background: var(--color-bg-tertiary);
 }
 
-.preview-image {
+.batch-thumb {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+}
+
+.batch-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+}
+
+.progress-fill {
+  transition: stroke-dasharray 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+}
+
+.batch-status-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 175, 80, 0.7);
+}
+
+.batch-status-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.batch-status-icon.error-icon {
+  background: rgba(244, 67, 54, 0.7);
+}
+
+.batch-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.batch-remove:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.batch-remove svg {
+  width: 12px;
+  height: 12px;
+  color: white;
+}
+
+.batch-add-item {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 2px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-lighter);
+}
+
+.batch-add-item:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-lighter);
+}
+
+.batch-add-item svg {
+  width: 24px;
+  height: 24px;
+}
+
+.batch-add-item span {
+  font-size: 11px;
+}
+
+.batch-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-light);
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
+}
+
+.success-count {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.error-count {
+  color: #f44336;
+  font-weight: 500;
 }
 
 .form-group {
@@ -835,6 +1085,7 @@ onUnmounted(() => {
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .modal-btn {
@@ -940,10 +1191,7 @@ onUnmounted(() => {
 
 .viewer-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.95);
   z-index: 1000;
   display: flex;
@@ -1055,9 +1303,7 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .viewer-image {
@@ -1145,42 +1391,52 @@ onUnmounted(() => {
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
-  
+
   .photo-info {
     padding: 6px 8px;
   }
-  
+
   .photo-description {
     font-size: 11px;
   }
-  
+
   .photo-delete-btn {
     width: 24px;
     height: 24px;
   }
-  
+
   .photo-delete-btn svg {
     width: 14px;
     height: 14px;
   }
-  
+
   .viewer-nav {
     width: 40px;
     height: 40px;
   }
-  
+
   .viewer-nav svg {
     width: 20px;
     height: 20px;
   }
-  
+
   .viewer-thumbnails {
     padding: 12px 16px;
   }
-  
+
   .thumbnail-item {
     width: 50px;
     height: 50px;
+  }
+
+  .upload-dialog {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .batch-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 }
 
@@ -1188,44 +1444,49 @@ onUnmounted(() => {
   .page-content {
     padding: 10px;
   }
-  
+
   .skeleton-grid,
   .photo-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
-  
+
   .photo-info {
     padding: 5px 6px;
   }
-  
+
   .photo-description {
     font-size: 10px;
   }
-  
+
   .photo-delete-btn {
     width: 22px;
     height: 22px;
   }
-  
+
   .photo-delete-btn svg {
     width: 12px;
     height: 12px;
   }
-  
+
   .viewer-nav {
     width: 36px;
     height: 36px;
   }
-  
+
   .viewer-description {
     font-size: 13px;
     padding: 10px 16px;
   }
-  
+
   .thumbnail-item {
     width: 45px;
     height: 45px;
+  }
+
+  .batch-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 }
 </style>

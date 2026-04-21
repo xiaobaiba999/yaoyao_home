@@ -54,7 +54,7 @@ onMounted(() => {
     #c8b8b0 50%,
     #b8a8a0 75%,
     #d0c0b8 100%
-  );
+  ) !important;
   filter: blur(1px);
   opacity: 0.85;
 }

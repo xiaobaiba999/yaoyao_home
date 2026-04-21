@@ -172,6 +172,151 @@ export const themePresets = {
       shadow: 'rgba(0, 0, 0, 0.20)',
       shadowHover: 'rgba(0, 0, 0, 0.35)'
     }
+  },
+  sakura: {
+    id: 'sakura',
+    name: '樱花粉',
+    icon: '🌸',
+    description: '如樱花般柔美，浪漫满溢',
+    mode: 'light',
+    colors: {
+      bg: '#FFF8FA',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#FFF0F4',
+      accent: '#F2A0B8',
+      accentLight: '#F8C0D0',
+      accentLighter: '#FDE4EC',
+      accentDark: '#D88098',
+      pink: '#F0A8C0',
+      pinkLight: '#F8C8D8',
+      pinkDark: '#D888A0',
+      text: '#4A2A3A',
+      textLight: '#8A6078',
+      textLighter: '#B898A8',
+      title: '#3A1828',
+      titleLight: '#5A3048',
+      border: '#F0D0DC',
+      borderLight: '#F8E0E8',
+      white: '#FFFFFF',
+      shadow: 'rgba(216, 128, 152, 0.08)',
+      shadowHover: 'rgba(216, 128, 152, 0.14)'
+    }
+  },
+  ocean: {
+    id: 'ocean',
+    name: '海洋蓝',
+    icon: '🌊',
+    description: '深邃海洋的蓝色，宁静致远',
+    mode: 'light',
+    colors: {
+      bg: '#F2F7FB',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#E8F0F6',
+      accent: '#5A9AB8',
+      accentLight: '#88B8D0',
+      accentLighter: '#C0DCE8',
+      accentDark: '#3A7A98',
+      pink: '#78A8C0',
+      pinkLight: '#A0C8D8',
+      pinkDark: '#5888A0',
+      text: '#1A2A3A',
+      textLight: '#506878',
+      textLighter: '#8898A8',
+      title: '#0A1828',
+      titleLight: '#2A3848',
+      border: '#D0E0E8',
+      borderLight: '#E0ECF2',
+      white: '#FFFFFF',
+      shadow: 'rgba(58, 122, 152, 0.08)',
+      shadowHover: 'rgba(58, 122, 152, 0.14)'
+    }
+  },
+  forest: {
+    id: 'forest',
+    name: '森林绿',
+    icon: '🍃',
+    description: '自然清新的绿色，生机盎然',
+    mode: 'light',
+    colors: {
+      bg: '#F5F8F4',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#ECF2EA',
+      accent: '#7AAE78',
+      accentLight: '#A0C8A0',
+      accentLighter: '#D0E4D0',
+      accentDark: '#5A8E58',
+      pink: '#88B888',
+      pinkLight: '#B0D4B0',
+      pinkDark: '#689868',
+      text: '#2A3A28',
+      textLight: '#607060',
+      textLighter: '#98A898',
+      title: '#1A2818',
+      titleLight: '#3A4838',
+      border: '#D0DCD0',
+      borderLight: '#E0E8E0',
+      white: '#FFFFFF',
+      shadow: 'rgba(90, 142, 88, 0.08)',
+      shadowHover: 'rgba(90, 142, 88, 0.14)'
+    }
+  },
+  starry: {
+    id: 'starry',
+    name: '星空紫',
+    icon: '✨',
+    description: '璀璨星空的深紫，梦幻迷人',
+    mode: 'dark',
+    colors: {
+      bg: '#18142A',
+      bgSecondary: '#221E38',
+      bgTertiary: '#2C2840',
+      accent: '#A888D0',
+      accentLight: '#8868B0',
+      accentLighter: '#342848',
+      accentDark: '#C0A0E0',
+      pink: '#9878C0',
+      pinkLight: '#7858A0',
+      pinkDark: '#B898D8',
+      text: '#C8C0D8',
+      textLight: '#9088A8',
+      textLighter: '#585070',
+      title: '#E0D8F0',
+      titleLight: '#B0A8C8',
+      border: '#383048',
+      borderLight: '#2C2438',
+      white: '#221E38',
+      shadow: 'rgba(0, 0, 0, 0.25)',
+      shadowHover: 'rgba(0, 0, 0, 0.40)'
+    }
+  },
+  peach: {
+    id: 'peach',
+    name: '蜜桃橘',
+    icon: '🍑',
+    description: '甜蜜蜜桃的橘色，温馨可人',
+    mode: 'light',
+    colors: {
+      bg: '#FFFAF6',
+      bgSecondary: '#FFFFFF',
+      bgTertiary: '#FFF2EC',
+      accent: '#E8A088',
+      accentLight: '#F0C0A8',
+      accentLighter: '#F8E0D4',
+      accentDark: '#C88068',
+      pink: '#F0B098',
+      pinkLight: '#F8D0C0',
+      pinkDark: '#D09078',
+      text: '#3A2820',
+      textLight: '#7A6050',
+      textLighter: '#B09888',
+      title: '#2A1810',
+      titleLight: '#4A3028',
+      border: '#E8D0C0',
+      borderLight: '#F2E0D4',
+      white: '#FFFFFF',
+      shadow: 'rgba(200, 128, 104, 0.08)',
+      shadowHover: 'rgba(200, 128, 104, 0.14)'
+    }
   }
 }
 
@@ -179,12 +324,12 @@ export const themeCategories = [
   {
     id: 'light',
     name: '浅色主题',
-    themeIds: ['romantic', 'fresh', 'minimal', 'warm', 'lavender']
+    themeIds: ['romantic', 'sakura', 'fresh', 'ocean', 'forest', 'warm', 'peach', 'minimal', 'lavender']
   },
   {
     id: 'dark',
     name: '深色主题',
-    themeIds: ['dark']
+    themeIds: ['dark', 'starry']
   }
 ]
 

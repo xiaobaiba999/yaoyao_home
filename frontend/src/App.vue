@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBgmStore } from '@/stores/bgm'
@@ -33,6 +33,7 @@ const isLoginPage = computed(() => route.path === '/login')
 function handleFirstInteraction() {
   if (!hasInteracted.value && bgmStore.bgmEnabled && !bgmStore.isPlaying) {
     hasInteracted.value = true
+    bgmStore.setUserInteracted()
     if (bgmStore.playlist.length > 0) {
       bgmStore.playTrack(bgmStore.currentTrackIndex)
     }
@@ -51,12 +52,17 @@ function prefetchRoutes() {
 onMounted(() => {
   themeStore.loadTheme()
   authStore.checkAuth()
+  bgmStore.initVisibilityListener()
   setTimeout(() => {
     isLoading.value = false
     requestIdleCallback(() => {
       prefetchRoutes()
     })
   }, 600)
+})
+
+onUnmounted(() => {
+  bgmStore.cleanupVisibilityListener()
 })
 
 watch(route, () => {

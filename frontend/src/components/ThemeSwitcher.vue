@@ -2,21 +2,22 @@
   <div class="theme-switcher">
     <button
       class="theme-trigger"
-      @click="themeStore.togglePanel"
-      :class="{ active: themeStore.showPanel }"
+      @click="handleTriggerClick"
+      :class="{ active: themeStore.showPanel, minimized: isScrolled }"
+      :style="triggerStyle"
       title="切换主题"
     >
-      <svg class="trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="4"/>
-        <path d="M12 2v2"/>
-        <path d="M12 20v2"/>
-        <path d="m4.93 4.93 1.41 1.41"/>
-        <path d="m17.66 17.66 1.41 1.41"/>
-        <path d="M2 12h2"/>
-        <path d="M20 12h2"/>
-        <path d="m6.34 17.66-1.41 1.41"/>
-        <path d="m19.07 4.93-1.41 1.41"/>
-      </svg>
+      <div class="trigger-bg"></div>
+      <div class="trigger-content">
+        <span class="trigger-day" :style="{ color: textColor }">我们在一起的第{{ daysTogether }}天</span>
+        <span class="trigger-sub" :style="{ color: subTextColor }">时光荏苒，每一刻都是爱的见证</span>
+      </div>
+      <div class="trigger-heart" :style="{ color: heartColor }">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      </div>
+      <div class="trigger-glow"></div>
     </button>
 
     <Teleport to="body">
@@ -147,18 +148,83 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { themePresets, themeCategories } from '@/config/themes'
 
 const themeStore = useThemeStore()
+
+const START_DATE = new Date('2023-05-20')
+const isScrolled = ref(false)
+
+const daysTogether = computed(() => {
+  const now = new Date()
+  const diff = now.getTime() - START_DATE.getTime()
+  return Math.floor(diff / (1000 * 60 * 60 * 24))
+})
 
 const hasAdjustments = computed(() => {
   const a = themeStore.customAdjustments
   return a.hue !== 0 || a.saturation !== 0 || a.lightness !== 0
 })
 
+function hexToRgb(hex) {
+  if (!hex || !hex.startsWith('#')) return { r: 128, g: 128, b: 128 }
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
+}
+
+function relativeLuminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  })
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
+}
+
+function contrastRatio(lum1, lum2) {
+  const lighter = Math.max(lum1, lum2)
+  const darker = Math.min(lum1, lum2)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+function getContrastTextColor(bgHex, minRatio = 4.5) {
+  const bg = hexToRgb(bgHex)
+  const bgLum = relativeLuminance(bg.r, bg.g, bg.b)
+  const whiteLum = relativeLuminance(255, 255, 255)
+  const blackLum = relativeLuminance(0, 0, 0)
+  const whiteContrast = contrastRatio(whiteLum, bgLum)
+  const blackContrast = contrastRatio(bgLum, blackLum)
+  if (whiteContrast >= minRatio && whiteContrast >= blackContrast) return '#FFFFFF'
+  if (blackContrast >= minRatio) return '#000000'
+  return whiteContrast > blackContrast ? '#FFFFFF' : '#000000'
+}
+
+const currentAccentColor = computed(() => {
+  const colors = themeStore.adjustedColors
+  return colors?.accent || '#E8A0B0'
+})
+
+const textColor = computed(() => getContrastTextColor(currentAccentColor.value))
+const subTextColor = computed(() => {
+  const base = getContrastTextColor(currentAccentColor.value)
+  return base === '#FFFFFF' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)'
+})
+const heartColor = computed(() => getContrastTextColor(currentAccentColor.value))
+
+const triggerStyle = computed(() => ({}))
+
 let adjustTimer = null
+
+function handleScroll() {
+  isScrolled.value = window.scrollY > 80
+}
+
+function handleTriggerClick() {
+  themeStore.togglePanel()
+}
 
 function selectTheme(themeId) {
   if (themeStore.followSystem) return
@@ -179,11 +245,14 @@ function handleEscape(e) {
 }
 
 onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
   document.addEventListener('keydown', handleEscape)
   themeStore.initSystemThemeListener()
+  handleScroll()
 })
 
 onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('keydown', handleEscape)
   themeStore.cleanup()
 })
@@ -191,39 +260,134 @@ onUnmounted(() => {
 
 <style scoped>
 .theme-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-bg-secondary);
+  padding: 10px 20px;
   border: none;
-  box-shadow: var(--shadow-soft);
+  border-radius: 24px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  min-width: 180px;
+  min-height: 52px;
+  background: transparent;
+}
+
+.theme-trigger.minimized {
+  min-width: 48px;
+  min-height: 48px;
+  width: 48px;
+  height: 48px;
   padding: 0;
+  border-radius: 50%;
+}
+
+.trigger-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-pink) 50%, var(--color-accent-dark) 100%);
+  border-radius: 24px;
+  opacity: 0.9;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-trigger.minimized .trigger-bg {
+  border-radius: 50%;
+  opacity: 1;
+}
+
+.theme-trigger:hover .trigger-bg {
+  opacity: 1;
+}
+
+.trigger-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, var(--color-accent-light), var(--color-pink-light), var(--color-accent));
+  opacity: 0;
+  z-index: -1;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: blur(8px);
+}
+
+.theme-trigger.minimized .trigger-glow {
+  border-radius: 50%;
+}
+
+.theme-trigger:hover .trigger-glow {
+  opacity: 0.6;
 }
 
 .theme-trigger:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.theme-trigger.minimized:hover {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.theme-trigger:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .theme-trigger.active {
-  background: var(--color-accent-lighter);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.trigger-icon {
-  width: 22px;
-  height: 22px;
-  color: var(--color-text-light);
-  transition: all 0.4s ease;
+.trigger-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.theme-trigger:hover .trigger-icon {
-  transform: rotate(45deg);
-  color: var(--color-accent);
+.theme-trigger.minimized .trigger-content {
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+  position: absolute;
+}
+
+.trigger-day {
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.trigger-sub {
+  font-size: 9px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.trigger-heart {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.theme-trigger.minimized .trigger-heart {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .theme-overlay {
@@ -545,6 +709,29 @@ onUnmounted(() => {
   transform: translate(-50%, -50%) scale(0.95);
 }
 
+@media (max-width: 768px) {
+  .theme-trigger {
+    min-width: 140px;
+    padding: 8px 14px;
+    border-radius: 20px;
+  }
+
+  .theme-trigger.minimized {
+    min-width: 42px;
+    min-height: 42px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .trigger-day {
+    font-size: 11px;
+  }
+
+  .trigger-sub {
+    font-size: 8px;
+  }
+}
+
 @media (max-width: 480px) {
   .theme-panel {
     width: 100%;
@@ -570,6 +757,26 @@ onUnmounted(() => {
   .theme-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
+  }
+
+  .theme-trigger {
+    min-width: 120px;
+    padding: 6px 12px;
+  }
+
+  .theme-trigger.minimized {
+    min-width: 38px;
+    min-height: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .trigger-day {
+    font-size: 10px;
+  }
+
+  .trigger-sub {
+    font-size: 7px;
   }
 }
 </style>

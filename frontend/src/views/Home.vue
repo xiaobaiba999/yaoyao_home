@@ -19,21 +19,7 @@
     <FooterBar />
     
     <div class="floating-actions">
-      <button 
-        @click.stop="bgmStore.toggleBGM()" 
-        class="action-btn bgm-btn" 
-        :class="{ active: bgmStore.bgmEnabled }"
-        type="button"
-        aria-label="背景音乐"
-      >
-        <span v-if="bgmStore.bgmLoading">...</span>
-        <span v-else>{{ bgmStore.bgmEnabled ? '♪' : '♪' }}</span>
-      </button>
       <ThemeSwitcher />
-    </div>
-    
-    <div class="bgm-notice" v-if="bgmStore.showNotice">
-      <span>{{ bgmStore.noticeText }}</span>
     </div>
   </div>
 </template>
@@ -51,9 +37,6 @@ const bgmStore = useBgmStore()
 
 onMounted(async () => {
   await bgmStore.initFromAPI()
-  if (bgmStore.bgmEnabled && bgmStore.playlist.length > 0) {
-    bgmStore.playTrack(bgmStore.currentTrackIndex)
-  }
 })
 </script>
 
@@ -106,65 +89,6 @@ onMounted(async () => {
   z-index: 100;
 }
 
-.action-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--color-bg-secondary);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  box-shadow: var(--shadow-soft);
-  transition: all var(--transition-normal);
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--color-text-light);
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.action-btn:active {
-  transform: scale(0.95);
-}
-
-.action-btn:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-medium);
-}
-
-.bgm-btn.active {
-  color: var(--color-pink);
-}
-
-.bgm-notice {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 12px 24px;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-dark);
-  color: white;
-  font-size: 14px;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
 @media (max-width: 768px) {
   .section {
     padding: 60px 0;
@@ -182,12 +106,6 @@ onMounted(async () => {
   .floating-actions {
     right: 16px;
     bottom: 80px;
-  }
-  
-  .action-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
   }
 }
 

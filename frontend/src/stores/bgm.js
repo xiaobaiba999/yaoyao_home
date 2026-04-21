@@ -3,10 +3,9 @@ import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'bgm_state'
 const CUSTOM_PLAYLIST_KEY = 'bgm_custom_playlist'
-const DATA_VERSION = 'v10.0'
+const DATA_VERSION = 'v11.0'
 const VERSION_KEY = 'bgm_data_version'
 
-// 音乐服务地址
 const MUSIC_SERVICE_URL = import.meta.env.VITE_MUSIC_SERVICE_URL || 'http://localhost:8088'
 
 export const useBgmStore = defineStore('bgm', () => {
@@ -16,24 +15,25 @@ export const useBgmStore = defineStore('bgm', () => {
   const currentTrackIndex = ref(0)
   const volume = ref(0.5)
   const shuffleMode = ref(true)
-  const showPlaylist = ref(false)
+  const showPlaylist = ref(true)
   const apiLoaded = ref(false)
   const customPlaylist = ref([])
   const hasUserInteracted = ref(false)
+  const playlist = ref([])
 
   let audio = null
-  let playlist = []
   let noticeTimer = null
   let playLock = false
   let retryCount = 0
   const MAX_RETRIES = 3
+  let wasPlayingBeforeHidden = false
 
   const currentTrack = computed(() => {
-    if (playlist.length === 0) return null
-    return playlist[currentTrackIndex.value] || null
+    if (playlist.value.length === 0) return null
+    return playlist.value[currentTrackIndex.value] || null
   })
 
-  const totalTracks = computed(() => playlist.length)
+  const totalTracks = computed(() => playlist.value.length)
 
   function showBgmNotice(msg) {
     console.log('[BGM]', msg)
@@ -48,30 +48,32 @@ export const useBgmStore = defineStore('bgm', () => {
       const result = await response.json()
       console.log('[BGM] 获取结果:', result)
       
+      const apiTracks = []
       if (result.code === 200 && result.data && result.data.length > 0) {
-        playlist = result.data.map(m => ({
-          id: `music-${m.id}`,
-          name: m.name,
-          artist: m.artist,
-          url: m.fileUrl
-        }))
-        console.log('[BGM] 成功加载音乐列表，数量:', playlist.length)
+        result.data.forEach(m => {
+          apiTracks.push({
+            id: `music-${m.id}`,
+            name: m.name || '未知',
+            artist: m.artist || '未知',
+            url: m.fileUrl
+          })
+        })
+        console.log('[BGM] 成功加载音乐列表，数量:', apiTracks.length)
       } else {
         console.warn('[BGM] 音乐列表为空或返回错误')
-        playlist = []
       }
       
       const customTracks = customPlaylist.value.map(t => ({ ...t }))
-      playlist = [...playlist, ...customTracks]
+      playlist.value = [...apiTracks, ...customTracks]
       
       apiLoaded.value = true
-      if (playlist.length > 0 && currentTrackIndex.value >= playlist.length) {
+      if (playlist.value.length > 0 && currentTrackIndex.value >= playlist.value.length) {
         currentTrackIndex.value = 0
       }
-      console.log('[BGM] 最终播放列表:', playlist)
+      console.log('[BGM] 最终播放列表:', playlist.value.length, '首')
     } catch (e) {
       console.error('[BGM] 加载音乐列表失败:', e)
-      playlist = []
+      playlist.value = []
       apiLoaded.value = true
     }
   }
@@ -104,6 +106,34 @@ export const useBgmStore = defineStore('bgm', () => {
     return audio
   }
 
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      if (isPlaying.value && bgmEnabled.value) {
+        wasPlayingBeforeHidden = true
+        const a = ensureAudio()
+        a.pause()
+        isPlaying.value = false
+      }
+    } else {
+      if (wasPlayingBeforeHidden && bgmEnabled.value && hasUserInteracted.value) {
+        wasPlayingBeforeHidden = false
+        const a = ensureAudio()
+        if (a.src) {
+          a.play().catch(() => {})
+          isPlaying.value = true
+        }
+      }
+    }
+  }
+
+  function initVisibilityListener() {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+
+  function cleanupVisibilityListener() {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+
   async function playTrack(index) {
     if (playLock) return
 
@@ -112,20 +142,18 @@ export const useBgmStore = defineStore('bgm', () => {
       return
     }
 
-    if (playlist.length === 0) {
+    if (playlist.value.length === 0) {
       await initFromAPI()
     }
 
-    if (index < 0 || index >= playlist.length) {
-      console.log('索引超出范围:', index, '播放列表长度:', playlist.length)
+    if (index < 0 || index >= playlist.value.length) {
       return
     }
 
     playLock = true
     currentTrackIndex.value = index
-    const track = playlist[index]
+    const track = playlist.value[index]
     if (!track || !track.url) {
-      console.log('歌曲URL为空:', track)
       playLock = false
       playNext()
       return
@@ -169,7 +197,6 @@ export const useBgmStore = defineStore('bgm', () => {
   function setUserInteracted() {
     if (!hasUserInteracted.value) {
       hasUserInteracted.value = true
-      // 用户首次交互后自动播放
       setTimeout(() => {
         playTrack(currentTrackIndex.value)
       }, 100)
@@ -197,32 +224,31 @@ export const useBgmStore = defineStore('bgm', () => {
   }
 
   function playNext() {
-    if (playlist.length === 0) return
+    if (playlist.value.length === 0) return
 
     let nextIndex
     if (shuffleMode.value) {
-      nextIndex = Math.floor(Math.random() * playlist.length)
-      if (playlist.length > 1) {
+      nextIndex = Math.floor(Math.random() * playlist.value.length)
+      if (playlist.value.length > 1) {
         while (nextIndex === currentTrackIndex.value) {
-          nextIndex = Math.floor(Math.random() * playlist.length)
+          nextIndex = Math.floor(Math.random() * playlist.value.length)
         }
       }
     } else {
-      nextIndex = (currentTrackIndex.value + 1) % playlist.length
+      nextIndex = (currentTrackIndex.value + 1) % playlist.value.length
     }
 
-    console.log('切换下一首，索引:', nextIndex)
     playTrack(nextIndex)
   }
 
   function playPrev() {
-    if (playlist.length === 0) return
+    if (playlist.value.length === 0) return
 
     let prevIndex
     if (shuffleMode.value) {
-      prevIndex = Math.floor(Math.random() * playlist.length)
+      prevIndex = Math.floor(Math.random() * playlist.value.length)
     } else {
-      prevIndex = (currentTrackIndex.value - 1 + playlist.length) % playlist.length
+      prevIndex = (currentTrackIndex.value - 1 + playlist.value.length) % playlist.value.length
     }
 
     playTrack(prevIndex)
@@ -238,6 +264,17 @@ export const useBgmStore = defineStore('bgm', () => {
     showBgmNotice(shuffleMode.value ? '随机播放' : '顺序播放')
   }
 
+  function toggleBGM() {
+    bgmEnabled.value = !bgmEnabled.value
+    if (!bgmEnabled.value) {
+      const a = ensureAudio()
+      a.pause()
+      a.src = ''
+      isPlaying.value = false
+    }
+    showBgmNotice(bgmEnabled.value ? '背景音乐已开启' : '背景音乐已关闭')
+  }
+
   function togglePlaylist() {
     showPlaylist.value = !showPlaylist.value
   }
@@ -250,18 +287,18 @@ export const useBgmStore = defineStore('bgm', () => {
       artist: '自定义'
     }
     customPlaylist.value.push(newTrack)
-    playlist.push(newTrack)
+    playlist.value.push(newTrack)
     showBgmNotice(`已添加: ${name}`)
   }
 
   function removeTrack(index) {
-    if (index >= 0 && index < playlist.length) {
-      const track = playlist[index]
+    if (index >= 0 && index < playlist.value.length) {
+      const track = playlist.value[index]
       if (track.id.startsWith('custom-')) {
-        playlist.splice(index, 1)
+        playlist.value.splice(index, 1)
         const customIdx = customPlaylist.value.findIndex(t => t.id === track.id)
         if (customIdx >= 0) customPlaylist.value.splice(customIdx, 1)
-        if (currentTrackIndex.value >= playlist.length) {
+        if (currentTrackIndex.value >= playlist.value.length) {
           currentTrackIndex.value = 0
         }
       }
@@ -328,7 +365,7 @@ export const useBgmStore = defineStore('bgm', () => {
     hasUserInteracted,
     currentTrack,
     totalTracks,
-    playlist: computed(() => playlist),
+    playlist,
     initFromAPI,
     playTrack,
     togglePlayPause,
@@ -337,11 +374,14 @@ export const useBgmStore = defineStore('bgm', () => {
     setVolume,
     toggleShuffle,
     togglePlaylist,
+    toggleBGM,
     addTrack,
     removeTrack,
     refreshPlaylist,
     setUserInteracted,
     showBgmNotice,
-    saveToStorage
+    saveToStorage,
+    initVisibilityListener,
+    cleanupVisibilityListener
   }
 })
