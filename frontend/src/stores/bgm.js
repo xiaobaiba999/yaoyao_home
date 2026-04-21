@@ -6,18 +6,44 @@ const CUSTOM_PLAYLIST_KEY = 'bgm_custom_playlist'
 const DATA_VERSION = 'v7.0'
 const VERSION_KEY = 'bgm_data_version'
 
-const GITEE_OWNER = 'zhao-zhao-lu123'
-const GITEE_REPO = 'yaoyao-music'
-const GITEE_BRANCH = 'master'
+const builtinPlaylist = [
+  { name: '晴天', artist: '周杰伦', id: 'm1' },
+  { name: '稻香', artist: '周杰伦', id: 'm2' },
+  { name: '花海', artist: '周杰伦', id: 'm3' },
+  { name: '发如雪', artist: '周杰伦', id: 'm4' },
+  { name: '反方向的钟', artist: '周杰伦', id: 'm5' },
+  { name: '给我一首歌的时间', artist: '周杰伦', id: 'm6' },
+  { name: '明明就', artist: '周杰伦', id: 'm7' },
+  { name: '蒲公英的约定', artist: '周杰伦', id: 'm8' },
+  { name: '一路向北', artist: '周杰伦', id: 'm9' },
+  { name: '修炼爱情', artist: '林俊杰', id: 'm10' },
+  { name: '有何不可', artist: '许嵩', id: 'm11' },
+  { name: '清明雨上', artist: '许嵩', id: 'm12' },
+  { name: '泡沫', artist: '邓紫棋', id: 'm13' },
+  { name: '绿光', artist: '孙燕姿', id: 'm14' },
+  { name: '开始懂了', artist: '孙燕姿', id: 'm15' },
+  { name: '我怀念的', artist: '孙燕姿', id: 'm16' },
+  { name: '遇见', artist: '孙燕姿', id: 'm17' },
+  { name: '爱丫爱丫', artist: 'BY2', id: 'm18' },
+  { name: '倒数', artist: '邓紫棋', id: 'm19' },
+  { name: '唯一', artist: '王力宏', id: 'm20' },
+  { name: '再见', artist: '邓紫棋', id: 'm21' },
+  { name: '过活', artist: '棉子', id: 'm22' },
+  { name: 'Aways online', artist: '林俊杰', id: 'm23' }
+]
 
-function buildBuiltinWithUrls() {
+function buildPlaylistWithApiUrls() {
+  const API_BASE = import.meta.env.PROD
+    ? (import.meta.env.VITE_API_BASE_URL || 'https://your-backend-url.fcapp.run')
+    : '/api'
+
   return builtinPlaylist.map(m => ({
     ...m,
-    url: `https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/raw/${encodeURIComponent(m.name)}.mp3?ref=${GITEE_BRANCH}`
+    url: `${API_BASE}/music/play/${m.id}`
   }))
 }
 
-const builtinPlaylistWithUrls = buildBuiltinWithUrls()
+const playlistWithUrls = buildPlaylistWithApiUrls()
 
 export const useBgmStore = defineStore('bgm', () => {
   const bgmEnabled = ref(true)
@@ -31,7 +57,7 @@ export const useBgmStore = defineStore('bgm', () => {
   const customPlaylist = ref([])
 
   let audio = null
-  let playlist = []
+  let playlist = [...playlistWithUrls]
   let noticeTimer = null
 
   const currentTrack = computed(() => {
@@ -48,13 +74,13 @@ export const useBgmStore = defineStore('bgm', () => {
   async function initFromAPI() {
     if (apiLoaded.value) return
     try {
-      playlist = [...builtinPlaylistWithUrls]
+      playlist = [...playlistWithUrls]
       apiLoaded.value = true
       if (playlist.length > 0 && currentTrackIndex.value >= playlist.length) {
         currentTrackIndex.value = 0
       }
     } catch (e) {
-      playlist = [...builtinPlaylistWithUrls]
+      playlist = [...playlistWithUrls]
       apiLoaded.value = true
     }
   }
@@ -198,7 +224,6 @@ export const useBgmStore = defineStore('bgm', () => {
   }
 
   async function refreshPlaylist() {
-    apiPlaylist = []
     apiLoaded.value = false
     await initFromAPI()
   }
