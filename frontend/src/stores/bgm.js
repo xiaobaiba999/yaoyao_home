@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'bgm_state'
 const CUSTOM_PLAYLIST_KEY = 'bgm_custom_playlist'
-const DATA_VERSION = 'v7.0'
+const DATA_VERSION = 'v7.1'
 const VERSION_KEY = 'bgm_data_version'
 
 const builtinPlaylist = [
@@ -43,7 +43,7 @@ function buildPlaylistWithApiUrls() {
   }))
 }
 
-const playlistWithUrls = buildPlaylistWithApiUrls()
+const playlistWithUrls = buildPlaylistWithUrls()
 
 export const useBgmStore = defineStore('bgm', () => {
   const bgmEnabled = ref(true)
@@ -55,10 +55,14 @@ export const useBgmStore = defineStore('bgm', () => {
   const showPlaylist = ref(false)
   const apiLoaded = ref(false)
   const customPlaylist = ref([])
+  const hasUserInteracted = ref(false)
 
   let audio = null
   let playlist = [...playlistWithUrls]
   let noticeTimer = null
+  let playLock = false
+  let retryCount = 0
+  const MAX_RETRIES = 3
 
   const currentTrack = computed(() => {
     if (playlist.length === 0) return null
@@ -92,6 +96,7 @@ export const useBgmStore = defineStore('bgm', () => {
       audio.preload = 'auto'
 
       audio.addEventListener('ended', () => {
+        retryCount = 0
         playNext()
       })
 
@@ -99,22 +104,37 @@ export const useBgmStore = defineStore('bgm', () => {
         console.error('播放失败:', e)
         bgmLoading.value = false
         isPlaying.value = false
-        setTimeout(() => playNext(), 2000)
+        retryCount++
+        if (retryCount <= MAX_RETRIES) {
+          setTimeout(() => playNext(), 3000)
+        } else {
+          console.log('达到最大重试次数，停止播放')
+          retryCount = 0
+        }
       })
     }
     return audio
   }
 
   async function playTrack(index) {
+    if (playLock) return
+
+    if (!hasUserInteracted.value) {
+      console.log('等待用户交互后再播放')
+      return
+    }
+
     if (playlist.length === 0) {
       await initFromAPI()
     }
 
     if (index < 0 || index >= playlist.length) return
 
+    playLock = true
     currentTrackIndex.value = index
     const track = playlist[index]
     if (!track || !track.url) {
+      playLock = false
       playNext()
       return
     }
@@ -124,27 +144,54 @@ export const useBgmStore = defineStore('bgm', () => {
 
     try {
       a.src = track.url
-      a.load()
+      await a.load()
       await a.play()
       isPlaying.value = true
       bgmLoading.value = false
+      retryCount = 0
+      playLock = false
       showBgmNotice(`正在播放: ${track.name}`)
     } catch (error) {
       console.error('播放失败:', error)
       bgmLoading.value = false
       isPlaying.value = false
-      setTimeout(() => playNext(), 2000)
+      playLock = false
+      
+      if (error.name === 'NotAllowedError') {
+        console.log('需要用户交互才能播放')
+        return
+      }
+      
+      if (error.name === 'AbortError') {
+        console.log('播放被中断')
+        return
+      }
+      
+      retryCount++
+      if (retryCount <= MAX_RETRIES) {
+        setTimeout(() => playNext(), 3000)
+      }
     }
   }
 
+  function setUserInteracted() {
+    hasUserInteracted.value = true
+  }
+
   function togglePlayPause() {
+    if (!hasUserInteracted.value) {
+      hasUserInteracted.value = true
+    }
+
     const a = ensureAudio()
     if (isPlaying.value) {
       a.pause()
       isPlaying.value = false
     } else {
       if (a.src) {
-        a.play().catch(() => {})
+        a.play().catch(() => {
+          console.log('自动播放被阻止，等待用户点击')
+        })
         isPlaying.value = true
       } else {
         playTrack(currentTrackIndex.value)
@@ -167,7 +214,7 @@ export const useBgmStore = defineStore('bgm', () => {
       nextIndex = (currentTrackIndex.value + 1) % playlist.length
     }
 
-    playTrack(nextIndex)
+    setTimeout(() => playTrack(nextIndex), 500)
   }
 
   function playPrev() {
@@ -280,6 +327,7 @@ export const useBgmStore = defineStore('bgm', () => {
     showPlaylist,
     apiLoaded,
     customPlaylist,
+    hasUserInteracted,
     currentTrack,
     totalTracks,
     playlist: computed(() => playlist),
@@ -294,6 +342,7 @@ export const useBgmStore = defineStore('bgm', () => {
     addTrack,
     removeTrack,
     refreshPlaylist,
+    setUserInteracted,
     showBgmNotice,
     saveToStorage
   }

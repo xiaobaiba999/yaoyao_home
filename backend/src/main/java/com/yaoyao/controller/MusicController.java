@@ -67,28 +67,44 @@ public class MusicController {
             }
             
             String filename = music.get().get("filename");
-            String giteeUrl = String.format(
+            
+            // 先获取文件信息
+            String contentsUrl = String.format(
                 "https://gitee.com/api/v5/repos/%s/%s/contents/%s?ref=%s",
                 GITEE_OWNER, GITEE_REPO,
                 java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8),
                 GITEE_BRANCH
             );
             
-            String response = HttpUtil.get(giteeUrl);
-            JSONObject json = JSONUtil.parseObj(response);
+            String contentsResp = HttpUtil.createGet(contentsUrl)
+                .header("Accept", "application/json")
+                .execute()
+                .body();
+            
+            JSONObject json = JSONUtil.parseObj(contentsResp);
             String downloadUrl = json.getStr("download_url", "");
             
             if (downloadUrl.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
             
-            byte[] audioData = HttpUtil.downloadBytes(downloadUrl);
+            // 下载音频文件
+            byte[] audioData = HttpUtil.createGet(downloadUrl)
+                .header("Accept", "audio/mpeg")
+                .execute()
+                .bodyBytes();
+            
+            if (audioData == null || audioData.length == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
             
             return ResponseEntity.ok()
                 .header("Content-Type", "audio/mpeg")
                 .header("Accept-Ranges", "bytes")
                 .body(audioData);
         } catch (Exception e) {
+            System.err.println("音乐播放失败: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
