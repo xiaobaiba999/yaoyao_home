@@ -57,11 +57,15 @@ async function loadApiPlaylist() {
     const result = await response.json()
 
     if (result.success && result.data && result.data.length > 0) {
+      const GITEE_OWNER = 'zhao-zhao-lu123'
+      const GITEE_REPO = 'yaoyao-music'
+      const GITEE_BRANCH = 'master'
+      
       apiPlaylist = result.data.map(music => ({
         name: music.name,
         id: `api-${music.id}`,
-        url: `${MUSIC_API_BASE}/api/music/play/${music.id}`,
-        artist: '本地音乐'
+        url: `https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/raw/${GITEE_BRANCH}/${encodeURIComponent(music.filename || music.name)}.mp3`,
+        artist: music.artist || '本地音乐'
       }))
       console.log(`从音乐API加载了 ${apiPlaylist.length} 首歌曲`)
       return apiPlaylist
