@@ -34,6 +34,18 @@ const builtinPlaylist = [
   { name: 'Aways online', artist: '林俊杰', id: 'm23' }
 ]
 
+function buildBuiltinWithUrls() {
+  const GITEE_OWNER = 'zhao-zhao-lu123'
+  const GITEE_REPO = 'yaoyao-music'
+  const GITEE_BRANCH = 'master'
+  return builtinPlaylist.map(m => ({
+    ...m,
+    url: `https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/raw/${GITEE_BRANCH}/${encodeURIComponent(m.name)}.mp3`
+  }))
+}
+
+const builtinPlaylistWithUrls = buildBuiltinWithUrls()
+
 let apiPlaylist = []
 
 async function loadApiPlaylist() {
@@ -63,7 +75,7 @@ async function loadApiPlaylist() {
 
 async function getAllPlaylist() {
   const apiList = await loadApiPlaylist()
-  return [...apiList, ...builtinPlaylist]
+  return [...apiList, ...builtinPlaylistWithUrls]
 }
 
 export const useBgmStore = defineStore('bgm', () => {
@@ -103,7 +115,7 @@ export const useBgmStore = defineStore('bgm', () => {
         currentTrackIndex.value = 0
       }
     } catch (e) {
-      playlist = [...builtinPlaylist]
+      playlist = [...builtinPlaylistWithUrls]
       apiLoaded.value = true
     }
   }
