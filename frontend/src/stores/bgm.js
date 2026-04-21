@@ -42,16 +42,23 @@ export const useBgmStore = defineStore('bgm', () => {
   async function initFromAPI() {
     if (apiLoaded.value) return
     try {
+      console.log('[BGM] 开始从音乐服务获取列表:', MUSIC_SERVICE_URL)
       const response = await fetch(`${MUSIC_SERVICE_URL}/api/music/list`)
+      console.log('[BGM] 响应状态:', response.status)
       const result = await response.json()
+      console.log('[BGM] 获取结果:', result)
       
-      if (result.code === 200 && result.data) {
+      if (result.code === 200 && result.data && result.data.length > 0) {
         playlist = result.data.map(m => ({
           id: `music-${m.id}`,
           name: m.name,
           artist: m.artist,
           url: m.fileUrl
         }))
+        console.log('[BGM] 成功加载音乐列表，数量:', playlist.length)
+      } else {
+        console.warn('[BGM] 音乐列表为空或返回错误')
+        playlist = []
       }
       
       const customTracks = customPlaylist.value.map(t => ({ ...t }))
@@ -61,8 +68,9 @@ export const useBgmStore = defineStore('bgm', () => {
       if (playlist.length > 0 && currentTrackIndex.value >= playlist.length) {
         currentTrackIndex.value = 0
       }
+      console.log('[BGM] 最终播放列表:', playlist)
     } catch (e) {
-      console.error('加载音乐列表失败:', e)
+      console.error('[BGM] 加载音乐列表失败:', e)
       playlist = []
       apiLoaded.value = true
     }
