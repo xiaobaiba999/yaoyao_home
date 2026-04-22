@@ -62,7 +62,7 @@
               loading="lazy"
               :class="{ loaded: loadedImages[photo.id] }"
               @load="onImageLoad(photo.id)"
-              @error="onImageError(photo.id)"
+              @error="onImageError(photo.id, $event)"
             />
           </div>
           <div class="photo-info">
@@ -303,8 +303,9 @@ function onImageLoad(id) {
   loadedImages.value[id] = true
 }
 
-function onImageError(id) {
-  console.error('[Album] 图片加载失败, id:', id)
+function onImageError(id, event) {
+  const imgEl = event.target
+  console.error('[Album] 图片加载失败, id:', id, 'url:', imgEl?.src)
   loadedImages.value[id] = true
 }
 
@@ -345,6 +346,10 @@ async function loadPhotos() {
   isLoading.value = true
   try {
     photos.value = await getPhotos()
+    console.log('[Album] 加载照片列表:', photos.value.length, '张')
+    photos.value.forEach(p => {
+      console.log('[Album] photo:', p.id, 'url:', p.url, '→ resolved:', getThumbnailUrl(p.url))
+    })
   } catch (e) {
     console.error('加载照片失败', e)
     photos.value = []
