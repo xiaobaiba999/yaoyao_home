@@ -125,9 +125,11 @@ export function getImageUrl(url) {
   if (url.startsWith('/uploads/') || url.startsWith('photos/')) {
     if (import.meta.env.PROD) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
-      return baseUrl + '/' + url
+      const servePath = url.replace(/^\/?/, '')
+      return baseUrl + '/api/photos/serve/' + servePath
     }
-    return '/' + url
+    const servePath = url.replace(/^\/?/, '')
+    return '/api/photos/serve/' + servePath
   }
   return url
 }

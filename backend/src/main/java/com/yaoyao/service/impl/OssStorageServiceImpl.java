@@ -83,14 +83,7 @@ public class OssStorageServiceImpl implements OssStorageService {
 
     @Override
     public String getFileUrl(String objectKey) {
-        if (ossConfig.getUrlPrefix() != null && !ossConfig.getUrlPrefix().isEmpty()) {
-            String prefix = ossConfig.getUrlPrefix();
-            if (prefix.endsWith("/")) {
-                return prefix + objectKey;
-            }
-            return prefix + "/" + objectKey;
-        }
-        return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
+        return objectKey;
     }
 
     private String extractObjectKey(String url) {
