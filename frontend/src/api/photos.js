@@ -40,7 +40,12 @@ export const downloadPhoto = async (id) => {
     : ''
   const url = `${baseUrl}/api/photos/download/${id}`
   try {
-    const response = await fetch(url)
+    const token = localStorage.getItem('token')
+    const headers = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    const response = await fetch(url, { headers })
     if (!response.ok) throw new Error('下载失败')
     const blob = await response.blob()
     const contentDisposition = response.headers.get('Content-Disposition')

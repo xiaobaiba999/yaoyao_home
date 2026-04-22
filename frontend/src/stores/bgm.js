@@ -6,7 +6,7 @@ const CUSTOM_PLAYLIST_KEY = 'bgm_custom_playlist'
 const DATA_VERSION = 'v11.0'
 const VERSION_KEY = 'bgm_data_version'
 
-const MUSIC_SERVICE_URL = import.meta.env.VITE_MUSIC_SERVICE_URL || 'http://localhost:8088'
+const MUSIC_SERVICE_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_MUSIC_SERVICE_URL || 'http://localhost:8088')
 
 export const useBgmStore = defineStore('bgm', () => {
   const bgmEnabled = ref(true)
