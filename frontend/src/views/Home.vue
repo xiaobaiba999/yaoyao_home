@@ -82,7 +82,7 @@ onMounted(async () => {
 .floating-actions {
   position: fixed;
   right: 20px;
-  bottom: 100px;
+  bottom: 120px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -105,7 +105,7 @@ onMounted(async () => {
   
   .floating-actions {
     right: 16px;
-    bottom: 80px;
+    bottom: 100px;
   }
 }
 

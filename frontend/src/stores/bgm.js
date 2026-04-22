@@ -27,6 +27,8 @@ export const useBgmStore = defineStore('bgm', () => {
   let retryCount = 0
   const MAX_RETRIES = 3
   let wasPlayingBeforeHidden = false
+  const failedTracks = new Set()
+  let consecutiveFailures = 0
 
   const currentTrack = computed(() => {
     if (playlist.value.length === 0) return null
@@ -90,17 +92,24 @@ export const useBgmStore = defineStore('bgm', () => {
       })
 
       audio.addEventListener('error', (e) => {
-        console.error('播放错误:', audio.error)
+        console.error('播放错误:', audio.error?.code, audio.error?.message)
         bgmLoading.value = false
         isPlaying.value = false
-        retryCount++
-        if (retryCount <= MAX_RETRIES) {
-          console.log(`重试第${retryCount}次...`)
-          setTimeout(() => playNext(), 1000)
-        } else {
-          console.log('达到最大重试次数，停止播放')
-          retryCount = 0
+
+        const track = playlist.value[currentTrackIndex.value]
+        if (track) {
+          failedTracks.add(track.id)
+          console.warn('[BGM] 标记为不可播放:', track.name, track.url)
         }
+
+        consecutiveFailures++
+        if (consecutiveFailures >= playlist.value.length || consecutiveFailures >= 5) {
+          console.warn('[BGM] 连续失败过多，停止播放')
+          consecutiveFailures = 0
+          return
+        }
+
+        setTimeout(() => playNext(), 800)
       })
     }
     return audio
@@ -150,11 +159,23 @@ export const useBgmStore = defineStore('bgm', () => {
       return
     }
 
+    const track = playlist.value[index]
+    if (track && failedTracks.has(track.id)) {
+      console.warn('[BGM] 跳过不可播放的曲目:', track.name)
+      const nextIdx = findNextPlayable(index)
+      if (nextIdx === -1 || nextIdx === index) {
+        console.warn('[BGM] 没有可播放的曲目')
+        return
+      }
+      playTrack(nextIdx)
+      return
+    }
+
     playLock = true
     currentTrackIndex.value = index
-    const track = playlist.value[index]
     if (!track || !track.url) {
       playLock = false
+      failedTracks.add(track?.id || 'empty')
       playNext()
       return
     }
@@ -168,7 +189,7 @@ export const useBgmStore = defineStore('bgm', () => {
       await a.play()
       isPlaying.value = true
       bgmLoading.value = false
-      retryCount = 0
+      consecutiveFailures = 0
       playLock = false
       showBgmNotice(`正在播放: ${track.name}`)
     } catch (error) {
@@ -176,22 +197,37 @@ export const useBgmStore = defineStore('bgm', () => {
       bgmLoading.value = false
       isPlaying.value = false
       playLock = false
+
+      if (track) failedTracks.add(track.id)
       
       if (error.name === 'NotAllowedError') {
         console.log('需要用户交互才能播放')
         return
       }
-      
+
       if (error.name === 'AbortError') {
         console.log('播放被中断')
         return
       }
-      
-      retryCount++
-      if (retryCount <= MAX_RETRIES) {
-        setTimeout(() => playNext(), 1000)
+
+      consecutiveFailures++
+      if (consecutiveFailures < playlist.value.length && consecutiveFailures < 5) {
+        setTimeout(() => playNext(), 800)
       }
     }
+  }
+
+  function findNextPlayable(fromIndex) {
+    const len = playlist.value.length
+    if (len === 0) return -1
+    for (let i = 1; i <= len; i++) {
+      const idx = (fromIndex + i) % len
+      const track = playlist.value[idx]
+      if (track && !failedTracks.has(track.id) && track.url) {
+        return idx
+      }
+    }
+    return -1
   }
 
   function setUserInteracted() {

@@ -172,7 +172,7 @@ onUnmounted(() => {
 <style scoped>
 .music-player {
   position: fixed;
-  bottom: 20px;
+  bottom: 30px;
   right: 20px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
@@ -679,7 +679,7 @@ onUnmounted(() => {
 .confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 480px) {
-  .music-player { bottom: 12px; right: 12px; width: calc(100vw - 24px); max-width: 320px; }
+  .music-player { bottom: 20px; right: 12px; width: calc(100vw - 24px); max-width: 320px; }
   .music-player.minimized { width: 48px; height: 48px; }
 }
 </style>
