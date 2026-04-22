@@ -2,6 +2,7 @@ package com.yaoyao.controller;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.yaoyao.annotation.Log;
 import com.yaoyao.common.Result;
 import com.yaoyao.config.AppProperties;
 import com.yaoyao.entity.Photo;
@@ -40,6 +41,7 @@ public class PhotoController {
     }
 
     @PostMapping
+    @Log(module = "相册", operation = "上传", description = "上传照片")
     public Result<Photo> upload(
             @RequestParam("photo") MultipartFile file,
             @RequestParam(value = "description", required = false, defaultValue = "") String description) {
@@ -48,6 +50,7 @@ public class PhotoController {
     }
 
     @DeleteMapping("/{id}")
+    @Log(module = "相册", operation = "删除", description = "删除照片")
     public Result<String> delete(@PathVariable String id) {
         photoService.delete(id);
         return Result.success("删除成功");
