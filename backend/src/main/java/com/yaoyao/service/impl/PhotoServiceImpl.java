@@ -39,6 +39,11 @@ public class PhotoServiceImpl implements PhotoService {
     }
 
     @Override
+    public Photo getById(String id) {
+        return photoMapper.selectById(id);
+    }
+
+    @Override
     public Photo upload(MultipartFile file, String description) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("请选择要上传的图片");

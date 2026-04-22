@@ -9,6 +9,8 @@ public interface PhotoService {
 
     List<Photo> list();
 
+    Photo getById(String id);
+
     Photo upload(MultipartFile file, String description);
 
     void delete(String id);

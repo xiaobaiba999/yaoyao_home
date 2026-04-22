@@ -67,12 +67,21 @@
           </div>
           <div class="photo-info">
             <p class="photo-description">{{ photo.description || '无描述' }}</p>
-            <button class="photo-delete-btn" @click.stop="confirmDelete(photo.id)" title="删除">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
+            <div class="photo-actions">
+              <button class="photo-action-btn download" @click.stop="downloadPhoto(photo.id)" title="下载">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </button>
+              <button class="photo-action-btn delete" @click.stop="confirmDelete(photo.id)" title="删除">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -191,12 +200,21 @@
             </svg>
           </button>
           <span class="viewer-counter">{{ viewerIndex + 1 }} / {{ photos.length }}</span>
-          <button class="viewer-delete" @click.stop="confirmDeleteFromViewer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
+          <div class="viewer-actions">
+            <button class="viewer-download" @click.stop="downloadPhoto(currentPhoto?.id)" title="下载">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+            <button class="viewer-delete" @click.stop="confirmDeleteFromViewer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="viewer-content" @click.stop>
@@ -268,7 +286,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getPhotos, uploadPhoto, deletePhoto, validateFileSize } from '@/api/photos'
+import { getPhotos, uploadPhoto, deletePhoto, validateFileSize, downloadPhoto } from '@/api/photos'
 import { getImageUrl, getThumbnailUrl } from '@/api/request'
 import { ElMessage } from 'element-plus'
 
@@ -749,8 +767,14 @@ onUnmounted(() => {
   margin: 0;
 }
 
-.photo-delete-btn {
+.photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
+}
+
+.photo-action-btn {
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -764,14 +788,28 @@ onUnmounted(() => {
   opacity: 0.5;
 }
 
-.photo-delete-btn:hover {
-  background: #ffe0e0;
+.photo-action-btn:hover {
   opacity: 1;
 }
 
-.photo-delete-btn svg {
+.photo-action-btn.download:hover {
+  background: #e0f0ff;
+}
+
+.photo-action-btn.delete:hover {
+  background: #ffe0e0;
+}
+
+.photo-action-btn svg {
   width: 16px;
   height: 16px;
+}
+
+.photo-action-btn.download svg {
+  color: #4a9eff;
+}
+
+.photo-action-btn.delete svg {
   color: #ff6b6b;
 }
 
@@ -1266,6 +1304,7 @@ onUnmounted(() => {
 }
 
 .viewer-close,
+.viewer-download,
 .viewer-delete {
   width: 40px;
   height: 40px;
@@ -1280,15 +1319,22 @@ onUnmounted(() => {
 }
 
 .viewer-close:hover,
+.viewer-download:hover,
 .viewer-delete:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
 .viewer-close svg,
+.viewer-download svg,
 .viewer-delete svg {
   width: 24px;
   height: 24px;
   color: white;
+}
+
+.viewer-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .viewer-counter {
@@ -1459,12 +1505,12 @@ onUnmounted(() => {
     font-size: 11px;
   }
 
-  .photo-delete-btn {
+  .photo-action-btn {
     width: 24px;
     height: 24px;
   }
 
-  .photo-delete-btn svg {
+  .photo-action-btn svg {
     width: 14px;
     height: 14px;
   }
@@ -1518,12 +1564,12 @@ onUnmounted(() => {
     font-size: 10px;
   }
 
-  .photo-delete-btn {
+  .photo-action-btn {
     width: 22px;
     height: 22px;
   }
 
-  .photo-delete-btn svg {
+  .photo-action-btn svg {
     width: 12px;
     height: 12px;
   }

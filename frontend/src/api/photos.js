@@ -33,3 +33,10 @@ export const uploadToGitee = (formData) => {
 }
 
 export const deletePhoto = (id) => request.delete(`/photos/${id}`)
+
+export const downloadPhoto = (id) => {
+  const baseUrl = import.meta.env.PROD
+    ? (import.meta.env.VITE_API_BASE_URL || '')
+    : ''
+  window.open(`${baseUrl}/api/photos/download/${id}`, '_blank')
+}
