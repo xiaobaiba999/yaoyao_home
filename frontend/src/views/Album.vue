@@ -304,6 +304,7 @@ function onImageLoad(id) {
 }
 
 function onImageError(id) {
+  console.error('[Album] 图片加载失败, id:', id)
   loadedImages.value[id] = true
 }
 

@@ -67,8 +67,8 @@ export const useBgmStore = defineStore('bgm', () => {
       playlist.value = [...apiTracks, ...customTracks]
       
       apiLoaded.value = true
-      if (playlist.value.length > 0 && currentTrackIndex.value >= playlist.value.length) {
-        currentTrackIndex.value = 0
+      if (playlist.value.length > 0) {
+        currentTrackIndex.value = Math.floor(Math.random() * playlist.value.length)
       }
     } catch (e) {
       console.error('[BGM] 加载音乐列表失败:', e)
