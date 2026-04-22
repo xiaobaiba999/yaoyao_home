@@ -119,7 +119,14 @@ export function clearCache() {
 
 export function getImageUrl(url) {
   if (!url) return ''
-  return url
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  const baseUrl = import.meta.env.PROD
+    ? (import.meta.env.VITE_API_BASE_URL || '')
+    : ''
+  const cleanPath = url.replace(/^\/+/, '')
+  return baseUrl + '/api/photos/serve/' + cleanPath
 }
 
 export function getThumbnailUrl(url) {
