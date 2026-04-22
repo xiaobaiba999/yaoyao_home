@@ -34,9 +34,32 @@ export const uploadToGitee = (formData) => {
 
 export const deletePhoto = (id) => request.delete(`/photos/${id}`)
 
-export const downloadPhoto = (id) => {
+export const downloadPhoto = async (id) => {
   const baseUrl = import.meta.env.PROD
     ? (import.meta.env.VITE_API_BASE_URL || '')
     : ''
-  window.open(`${baseUrl}/api/photos/download/${id}`, '_blank')
+  const url = `${baseUrl}/api/photos/download/${id}`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('下载失败')
+    const blob = await response.blob()
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let filename = 'photo.png'
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?(.+?)"?$/)
+      if (match) {
+        filename = decodeURIComponent(match[1])
+      }
+    }
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
+  } catch (e) {
+    console.error('下载照片失败', e)
+    throw e
+  }
 }
