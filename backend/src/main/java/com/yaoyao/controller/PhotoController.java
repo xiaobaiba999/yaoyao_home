@@ -28,7 +28,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/photos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PhotoController {
 
     private final PhotoService photoService;
@@ -93,7 +92,6 @@ public class PhotoController {
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"" + java.net.URLEncoder.encode(filename, "UTF-8") + "\"")
-                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                     .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Content-Disposition")
                     .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
                     .body(imageData);

@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 @RestController
 @RequestMapping("/api/photos/serve")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PhotoServeController {
 
     private final AppProperties appProperties;
@@ -89,9 +88,6 @@ public class PhotoServeController {
 
     private void setResponseHeaders(HttpServletResponse response, String objectKey) {
         response.setContentType(getContentType(objectKey));
-        response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "*");
         response.setHeader("Cache-Control", "public, max-age=86400");
     }
 
