@@ -1,22 +1,25 @@
 {
   "version": "1.0.0",
-  "region": "cn-shanghai",
-  "runtime": "java11",
+  "region": "cn-hangzhou",
+  "runtime": "java17",
   "handler": "App::handleRequest",
   "memorySize": 512,
-  "timeout": 30,
+  "timeout": 60,
   "environmentVariables": {
-    "SPRING_PROFILES_ACTIVE": "production",
-    "DB_HOST": "your-free-db-host",
-    "DB_PORT": "3306",
+    "SPRING_PROFILES_ACTIVE": "prod",
+    "DB_HOST": "gateway01.ap-northeast-1.prod.aws.tidbcloud.com",
+    "DB_PORT": "4000",
     "DB_NAME": "yaoyao_memorial",
-    "DB_USER": "your-db-user",
-    "DB_PASSWORD": "your-db-password",
+    "DB_USERNAME": "3K7wRbrKq3XuNXn.root",
+    "DB_PASSWORD": "VnVOOxo90nYBkq5V",
     "JWT_SECRET": "yaoyao-memorial-secret-key-2024-production",
-    "ADMIN_USERNAME": "yaoyao",
     "ADMIN_PASSWORD": "yaoyao20230228",
-    "GITEE_ACCESS_TOKEN": "your-gitee-token",
-    "GITEE_OWNER": "your-gitee-username",
-    "GITEE_REPO": "your-gitee-repo"
+    "OSS_ENDPOINT": "oss-cn-hangzhou.aliyuncs.com",
+    "OSS_ACCESS_KEY_ID": "your-oss-access-key-id",
+    "OSS_ACCESS_KEY_SECRET": "your-oss-access-key-secret",
+    "OSS_BUCKET_NAME": "your-oss-bucket-name",
+    "OSS_URL_PREFIX": "",
+    "OSS_PATH_PREFIX": "photos",
+    "CORS_ORIGINS": "https://liyaoyao.top,https://www.liyaoyao.top"
   }
 }

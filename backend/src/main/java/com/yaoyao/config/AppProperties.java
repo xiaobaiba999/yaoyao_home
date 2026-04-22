@@ -12,6 +12,7 @@ public class AppProperties {
     private Jwt jwt = new Jwt();
     private Admin admin = new Admin();
     private Gitee gitee = new Gitee();
+    private Oss oss = new Oss();
     private Cors cors = new Cors();
     private String uploadDir = "./uploads";
 
@@ -67,6 +68,13 @@ public class AppProperties {
                 && !gitee.repo.startsWith("your_");
     }
 
+    public boolean isOssConfigured() {
+        return oss.endpoint != null && !oss.endpoint.isEmpty()
+                && oss.accessKeyId != null && !oss.accessKeyId.isEmpty()
+                && oss.accessKeySecret != null && !oss.accessKeySecret.isEmpty()
+                && oss.bucketName != null && !oss.bucketName.isEmpty();
+    }
+
     @Data
     public static class Jwt {
         private String secret = "yaoyao-memorial-secret-key-2024";
@@ -118,5 +126,28 @@ public class AppProperties {
 
         public String getAllowedOrigins() { return allowedOrigins; }
         public void setAllowedOrigins(String allowedOrigins) { this.allowedOrigins = allowedOrigins; }
+    }
+
+    @Data
+    public static class Oss {
+        private String endpoint;
+        private String accessKeyId;
+        private String accessKeySecret;
+        private String bucketName;
+        private String urlPrefix;
+        private String pathPrefix = "photos";
+
+        public String getEndpoint() { return endpoint; }
+        public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+        public String getAccessKeyId() { return accessKeyId; }
+        public void setAccessKeyId(String accessKeyId) { this.accessKeyId = accessKeyId; }
+        public String getAccessKeySecret() { return accessKeySecret; }
+        public void setAccessKeySecret(String accessKeySecret) { this.accessKeySecret = accessKeySecret; }
+        public String getBucketName() { return bucketName; }
+        public void setBucketName(String bucketName) { this.bucketName = bucketName; }
+        public String getUrlPrefix() { return urlPrefix; }
+        public void setUrlPrefix(String urlPrefix) { this.urlPrefix = urlPrefix; }
+        public String getPathPrefix() { return pathPrefix; }
+        public void setPathPrefix(String pathPrefix) { this.pathPrefix = pathPrefix; }
     }
 }

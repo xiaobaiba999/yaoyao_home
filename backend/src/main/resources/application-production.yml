@@ -30,6 +30,13 @@ yaoyao:
   admin:
     username: yaoyao
     password: yaoyao20230228
+  oss:
+    endpoint: ${OSS_ENDPOINT:}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:}
+    url-prefix: ${OSS_URL_PREFIX:}
+    path-prefix: ${OSS_PATH_PREFIX:photos}
   gitee:
     access-token: ${GITEE_ACCESS_TOKEN:}
     owner: ${GITEE_OWNER:}

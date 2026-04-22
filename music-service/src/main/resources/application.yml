@@ -23,6 +23,13 @@ music:
   storage-path: ${MUSIC_STORAGE_PATH:./music-files}
   max-size: 52428800
   base-url: ${MUSIC_BASE_URL:}
+  oss:
+    endpoint: ${OSS_ENDPOINT:}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:}
+    url-prefix: ${OSS_URL_PREFIX:}
+    path-prefix: ${OSS_PATH_PREFIX:music}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
