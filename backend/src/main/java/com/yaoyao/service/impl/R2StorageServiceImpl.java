@@ -22,18 +22,29 @@ import java.util.UUID;
 public class R2StorageServiceImpl implements R2StorageService {
 
     private final AppProperties.R2 r2Config;
-    private final S3Client s3Client;
+    private S3Client s3Client;
 
     public R2StorageServiceImpl(AppProperties appProperties) {
         this.r2Config = appProperties.getR2();
-        this.s3Client = S3Client.builder()
-                .endpointOverride(java.net.URI.create(r2Config.getEndpoint()))
-                .region(Region.of(r2Config.getRegion() != null ? r2Config.getRegion() : "auto"))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(r2Config.getAccessKeyId(), r2Config.getAccessKeySecret())
-                ))
-                .build();
-        log.info("[R2] 初始化完成, endpoint={}, bucket={}", r2Config.getEndpoint(), r2Config.getBucketName());
+        log.info("[R2] 配置加载完成, endpoint={}, bucket={}", r2Config.getEndpoint(), r2Config.getBucketName());
+    }
+
+    private synchronized S3Client getS3Client() {
+        if (s3Client == null) {
+            String endpoint = r2Config.getEndpoint();
+            if (endpoint == null || endpoint.isEmpty()) {
+                throw new IllegalStateException("R2 未配置 endpoint");
+            }
+            s3Client = S3Client.builder()
+                    .endpointOverride(java.net.URI.create(endpoint))
+                    .region(Region.of(r2Config.getRegion() != null ? r2Config.getRegion() : "auto"))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(r2Config.getAccessKeyId(), r2Config.getAccessKeySecret())
+                    ))
+                    .build();
+            log.info("[R2] S3Client 懒加载初始化完成");
+        }
+        return s3Client;
     }
 
     @Override
@@ -54,7 +65,7 @@ public class R2StorageServiceImpl implements R2StorageService {
                     .contentType(file.getContentType())
                     .build();
 
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
+            getS3Client().putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
             log.info("[R2] 上传成功: {}", objectKey);
             return getFileUrl(objectKey);
         } catch (IOException e) {
@@ -71,7 +82,7 @@ public class R2StorageServiceImpl implements R2StorageService {
                     .bucket(r2Config.getBucketName())
                     .key(objectKey)
                     .build();
-            s3Client.deleteObject(deleteRequest);
+            getS3Client().deleteObject(deleteRequest);
             log.info("[R2] 删除成功: {}", objectKey);
         } catch (Exception e) {
             log.error("[R2] 删除失败: {}", objectKey, e);
