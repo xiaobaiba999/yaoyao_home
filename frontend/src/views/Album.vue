@@ -266,7 +266,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPhotos, uploadPhoto, deletePhoto, validateFileSize } from '@/api/photos'
-import { getImageUrl } from '@/api/request'
+import { getImageUrl, getThumbnailUrl } from '@/api/request'
 import { ElMessage } from 'element-plus'
 
 const MAX_BATCH = 9
@@ -296,15 +296,6 @@ const viewerIndex = ref(0)
 const viewerImageLoaded = ref(false)
 
 const currentPhoto = computed(() => photos.value[viewerIndex.value])
-
-function getThumbnailUrl(url) {
-  if (!url) return ''
-  const fullUrl = getImageUrl(url)
-  if (fullUrl.includes('supabase.co')) {
-    return fullUrl + '?width=300&height=300&resize=cover'
-  }
-  return fullUrl
-}
 
 function onImageLoad(id) {
   loadedImages.value[id] = true

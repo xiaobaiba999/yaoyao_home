@@ -6,6 +6,7 @@ import com.music.entity.Music;
 import com.music.repository.MusicRepository;
 import com.music.service.MusicService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +16,10 @@ import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MusicServiceImpl implements MusicService {
@@ -34,6 +37,28 @@ public class MusicServiceImpl implements MusicService {
         File dir = new File(storagePath);
         if (!dir.exists()) {
             dir.mkdirs();
+        }
+        syncDatabaseWithStorage();
+    }
+
+    private void syncDatabaseWithStorage() {
+        List<Music> allMusic = musicRepository.findAll();
+        List<Long> missingIds = new ArrayList<>();
+
+        for (Music music : allMusic) {
+            File file = new File(storagePath, music.getFileName());
+            if (!file.exists()) {
+                missingIds.add(music.getId());
+                log.warn("[MusicService] 文件不存在，标记清理: id={}, name={}, fileName={}",
+                        music.getId(), music.getName(), music.getFileName());
+            }
+        }
+
+        if (!missingIds.isEmpty()) {
+            log.info("[MusicService] 清理 {} 条无效音乐记录（文件已丢失）", missingIds.size());
+            musicRepository.deleteAllById(missingIds);
+        } else {
+            log.info("[MusicService] 所有音乐文件完整性检查通过，共 {} 首", allMusic.size());
         }
     }
 

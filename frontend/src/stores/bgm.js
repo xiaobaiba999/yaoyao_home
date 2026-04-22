@@ -46,9 +46,7 @@ export const useBgmStore = defineStore('bgm', () => {
     try {
       console.log('[BGM] 开始从音乐服务获取列表:', MUSIC_SERVICE_URL)
       const response = await fetch(`${MUSIC_SERVICE_URL}/api/music/list`)
-      console.log('[BGM] 响应状态:', response.status)
       const result = await response.json()
-      console.log('[BGM] 获取结果:', result)
       
       const apiTracks = []
       if (result.code === 200 && result.data && result.data.length > 0) {
@@ -60,7 +58,7 @@ export const useBgmStore = defineStore('bgm', () => {
             url: m.fileUrl
           })
         })
-        console.log('[BGM] 成功加载音乐列表，数量:', apiTracks.length)
+        console.log('[BGM] 加载音乐列表:', apiTracks.length, '首')
       } else {
         console.warn('[BGM] 音乐列表为空或返回错误')
       }
@@ -72,7 +70,6 @@ export const useBgmStore = defineStore('bgm', () => {
       if (playlist.value.length > 0 && currentTrackIndex.value >= playlist.value.length) {
         currentTrackIndex.value = 0
       }
-      console.log('[BGM] 最终播放列表:', playlist.value.length, '首')
     } catch (e) {
       console.error('[BGM] 加载音乐列表失败:', e)
       playlist.value = []

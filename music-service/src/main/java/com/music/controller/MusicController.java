@@ -122,6 +122,63 @@ public class MusicController {
                 .body(resource);
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> health() {
+        return ResponseEntity.ok(Map.of(
+            "code", 200,
+            "message", "ok",
+            "storagePath", storagePath
+        ));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validate() {
+        List<Music> musicList = musicService.getAllMusic();
+        List<Map<String, Object>> available = new java.util.ArrayList<>();
+        List<Map<String, Object>> missing = new java.util.ArrayList<>();
+
+        for (Music music : musicList) {
+            File file = new File(storagePath, music.getFileName());
+            Map<String, Object> item = Map.of(
+                "id", music.getId(),
+                "name", music.getName(),
+                "fileName", music.getFileName(),
+                "exists", file.exists()
+            );
+            if (file.exists()) {
+                available.add(item);
+            } else {
+                missing.add(item);
+            }
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "code", 200,
+            "total", musicList.size(),
+            "available", available.size(),
+            "missing", missing.size(),
+            "missingFiles", missing
+        ));
+    }
+
+    @DeleteMapping("/cleanup")
+    public ResponseEntity<Map<String, Object>> cleanup() {
+        List<Music> musicList = musicService.getAllMusic();
+        int cleaned = 0;
+        for (Music music : musicList) {
+            File file = new File(storagePath, music.getFileName());
+            if (!file.exists()) {
+                musicService.deleteMusic(music.getId());
+                cleaned++;
+            }
+        }
+        return ResponseEntity.ok(Map.of(
+            "code", 200,
+            "message", "清理完成",
+            "cleaned", cleaned
+        ));
+    }
+
     /**
      * 批量上传音乐
      */

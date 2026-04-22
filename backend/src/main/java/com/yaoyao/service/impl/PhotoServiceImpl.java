@@ -14,7 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.PostConstruct;
+import java.io.File;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,6 +29,38 @@ public class PhotoServiceImpl implements PhotoService {
     private final GiteeStorageService giteeStorageService;
     private final LocalStorageService localStorageService;
     private final AppProperties appProperties;
+
+    @PostConstruct
+    public void init() {
+        syncDatabaseWithStorage();
+    }
+
+    private void syncDatabaseWithStorage() {
+        List<Photo> allPhotos = photoMapper.selectList(null);
+        List<String> missingIds = new ArrayList<>();
+
+        for (Photo photo : allPhotos) {
+            String url = photo.getUrl();
+            if (url != null && url.startsWith("/uploads/")) {
+                String filename = url.substring("/uploads/".length());
+                String uploadDir = appProperties.getUploadDir();
+                File file = new File(uploadDir, filename);
+                if (!file.exists()) {
+                    missingIds.add(photo.getId());
+                    log.warn("[PhotoService] 图片文件不存在，标记清理: id={}, url={}", photo.getId(), url);
+                }
+            }
+        }
+
+        if (!missingIds.isEmpty()) {
+            log.info("[PhotoService] 清理 {} 条无效图片记录（文件已丢失）", missingIds.size());
+            for (String id : missingIds) {
+                photoMapper.deleteById(id);
+            }
+        } else {
+            log.info("[PhotoService] 所有图片文件完整性检查通过，共 {} 张", allPhotos.size());
+        }
+    }
 
     @Override
     public List<Photo> list() {

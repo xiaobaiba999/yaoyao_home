@@ -40,7 +40,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         if (uploadDir != null && !uploadDir.isEmpty()) {
             registry.addResourceHandler("/uploads/**")
                     .addResourceLocations("file:" + uploadDir + "/")
-                    .setCachePeriod(3600)
+                    .setCachePeriod(300)
                     .resourceChain(true)
                     .addResolver(new PathResourceResolver());
         }

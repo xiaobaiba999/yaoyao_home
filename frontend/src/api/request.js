@@ -132,4 +132,13 @@ export function getImageUrl(url) {
   return url
 }
 
+export function getThumbnailUrl(url) {
+  const fullUrl = getImageUrl(url)
+  if (!fullUrl) return ''
+  if (fullUrl.includes('supabase.co')) {
+    return fullUrl + '?width=300&height=300&resize=cover'
+  }
+  return fullUrl
+}
+
 export default request
