@@ -103,65 +103,68 @@
             </button>
           </div>
           <div class="modal-body">
-            <div class="batch-preview-grid">
+            <div class="batch-list">
               <div
                 v-for="(item, idx) in uploadQueue"
                 :key="idx"
-                class="batch-preview-item"
+                class="batch-item"
                 :class="{
                   'upload-success': item.status === 'success',
                   'upload-error': item.status === 'error',
                   'uploading': item.status === 'uploading'
                 }"
               >
-                <img :src="item.previewUrl" :alt="item.file.name" class="batch-thumb" />
-                <div class="batch-overlay" v-if="item.status === 'uploading'">
-                  <div class="progress-ring">
-                    <svg viewBox="0 0 36 36">
-                      <circle class="progress-bg" cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
-                      <circle class="progress-fill" cx="18" cy="18" r="16" fill="none" stroke="white" stroke-width="3"
-                        :stroke-dasharray="`${item.progress * 100.53} 100.53`"
-                        stroke-linecap="round"
-                        transform="rotate(-90 18 18)"/>
-                    </svg>
-                    <span class="progress-text">{{ Math.round(item.progress * 100) }}%</span>
+                <div class="batch-item-thumb-wrap">
+                  <img :src="item.previewUrl" :alt="item.file.name" class="batch-item-thumb" />
+                  <div class="batch-item-overlay" v-if="item.status === 'uploading'">
+                    <div class="progress-ring">
+                      <svg viewBox="0 0 36 36">
+                        <circle class="progress-bg" cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                        <circle class="progress-fill" cx="18" cy="18" r="16" fill="none" stroke="white" stroke-width="3"
+                          :stroke-dasharray="`${item.progress * 100.53} 100.53`"
+                          stroke-linecap="round"
+                          transform="rotate(-90 18 18)"/>
+                      </svg>
+                      <span class="progress-text">{{ Math.round(item.progress * 100) }}%</span>
+                    </div>
                   </div>
+                  <div class="batch-item-status" v-if="item.status === 'success'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div class="batch-item-status error" v-if="item.status === 'error'" :title="item.errorMsg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </div>
+                  <button class="batch-item-remove" @click="removeFromQueue(idx)" v-if="item.status === 'pending'" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
-                <div class="batch-status-icon" v-if="item.status === 'success'">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <div class="batch-item-info">
+                  <span class="batch-item-name">{{ item.file.name }}</span>
+                  <input
+                    v-model="item.description"
+                    type="text"
+                    placeholder="添加描述（最多20字）..."
+                    class="batch-item-input"
+                    maxlength="20"
+                    :disabled="item.status !== 'pending'"
+                  />
                 </div>
-                <div class="batch-status-icon error-icon" v-if="item.status === 'error'" :title="item.errorMsg">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </div>
-                <button class="batch-remove" @click="removeFromQueue(idx)" v-if="item.status === 'pending'" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
               </div>
-              <div class="batch-add-item" v-if="uploadQueue.length < MAX_BATCH" @click="addMoreFiles">
+            </div>
+
+            <div class="batch-actions" v-if="uploadQueue.length > 0">
+              <button class="batch-add-btn" v-if="uploadQueue.length < MAX_BATCH && !isUploading" @click="addMoreFiles" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span>添加</span>
+                <span>继续添加</span>
+              </button>
+              <div class="batch-summary">
+                <span>共 {{ uploadQueue.length }} 张</span>
+                <span v-if="successCount > 0" class="success-count">✓ {{ successCount }}</span>
+                <span v-if="errorCount > 0" class="error-count">✗ {{ errorCount }}</span>
               </div>
-            </div>
-
-            <div class="batch-summary" v-if="uploadQueue.length > 0">
-              <span>共 {{ uploadQueue.length }} 张</span>
-              <span v-if="successCount > 0" class="success-count">✓ {{ successCount }}</span>
-              <span v-if="errorCount > 0" class="error-count">✗ {{ errorCount }}</span>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">照片描述（统一）</label>
-              <input
-                v-model="uploadDescription"
-                type="text"
-                placeholder="为这批照片添加描述（最多20字）..."
-                class="form-input"
-                maxlength="20"
-              />
-              <span class="char-count">{{ uploadDescription.length }}/20</span>
             </div>
           </div>
           <div class="modal-footer">
@@ -281,7 +284,6 @@ const loadedImages = ref({})
 const fileInput = ref(null)
 const showUploadModal = ref(false)
 const showDeleteConfirm = ref(false)
-const uploadDescription = ref('')
 const isUploading = ref(false)
 const deleteTargetId = ref(null)
 
@@ -390,6 +392,7 @@ function handleFileSelect(e) {
     uploadQueue.value.push({
       file,
       previewUrl: URL.createObjectURL(file),
+      description: '',
       status: 'pending',
       progress: 0,
       errorMsg: ''
@@ -398,7 +401,6 @@ function handleFileSelect(e) {
 
   if (uploadQueue.value.length > 0 && !showUploadModal.value) {
     showUploadModal.value = true
-    uploadDescription.value = ''
   }
 }
 
@@ -418,7 +420,6 @@ function cancelUpload() {
   }
   uploadQueue.value = []
   showUploadModal.value = false
-  uploadDescription.value = ''
 }
 
 async function executeBatchUpload() {
@@ -434,7 +435,7 @@ async function executeBatchUpload() {
     try {
       const formData = new FormData()
       formData.append('photo', item.file)
-      formData.append('description', uploadDescription.value.trim() || '')
+      formData.append('description', (item.description || '').trim())
 
       const photo = await uploadPhoto(formData)
       item.status = 'success'
@@ -881,28 +882,52 @@ onUnmounted(() => {
   flex: 1;
 }
 
-.batch-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 16px;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
-.batch-preview-item {
-  position: relative;
-  aspect-ratio: 1;
+.batch-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
   border-radius: 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  transition: all 0.2s ease;
+}
+
+.batch-item.upload-success {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.batch-item.upload-error {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.batch-item-thumb-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
   overflow: hidden;
+  flex-shrink: 0;
   background: var(--color-bg-tertiary);
 }
 
-.batch-thumb {
+.batch-item-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.batch-overlay {
+.batch-item-overlay {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -938,7 +963,7 @@ onUnmounted(() => {
   color: white;
 }
 
-.batch-status-icon {
+.batch-item-status {
   position: absolute;
   inset: 0;
   display: flex;
@@ -947,21 +972,21 @@ onUnmounted(() => {
   background: rgba(76, 175, 80, 0.7);
 }
 
-.batch-status-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.batch-status-icon.error-icon {
+.batch-item-status.error {
   background: rgba(244, 67, 54, 0.7);
 }
 
-.batch-remove {
+.batch-item-status svg {
+  width: 24px;
+  height: 24px;
+}
+
+.batch-item-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
   border: none;
@@ -969,46 +994,83 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease;
 }
 
-.batch-remove:hover {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.batch-remove svg {
-  width: 12px;
-  height: 12px;
+.batch-item-remove svg {
+  width: 10px;
+  height: 10px;
   color: white;
 }
 
-.batch-add-item {
-  aspect-ratio: 1;
-  border-radius: 10px;
-  border: 2px dashed var(--color-border);
+.batch-item-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-lighter);
+  gap: 6px;
+  min-width: 0;
 }
 
-.batch-add-item:hover {
+.batch-item-name {
+  font-size: 12px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-item-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.batch-item-input:focus {
+  outline: none;
+  border-color: var(--color-pink);
+}
+
+.batch-item-input:disabled {
+  opacity: 0.5;
+  background: var(--color-bg-tertiary);
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.batch-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-light);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.batch-add-btn:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-lighter);
 }
 
-.batch-add-item svg {
-  width: 24px;
-  height: 24px;
-}
-
-.batch-add-item span {
-  font-size: 11px;
+.batch-add-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .batch-summary {
