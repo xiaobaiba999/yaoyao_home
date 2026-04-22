@@ -122,12 +122,12 @@ export function getImageUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url
   }
-  if (url.startsWith('/uploads/')) {
+  if (url.startsWith('/uploads/') || url.startsWith('photos/')) {
     if (import.meta.env.PROD) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
-      return baseUrl + url
+      return baseUrl + '/' + url
     }
-    return url
+    return '/' + url
   }
   return url
 }
