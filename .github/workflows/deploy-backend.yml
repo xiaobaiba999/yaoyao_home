@@ -48,10 +48,10 @@ jobs:
             DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
             JWT_SECRET: ${{ secrets.JWT_SECRET }}
             ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-            OSS_ENDPOINT: ${{ secrets.OSS_ENDPOINT }}
-            OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
-            OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
-            OSS_BUCKET_NAME: ${{ secrets.OSS_BUCKET_NAME }}
-            OSS_URL_PREFIX: ${{ secrets.OSS_URL_PREFIX }}
-            OSS_PATH_PREFIX: photos
+            R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+            R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_ACCESS_KEY_SECRET: ${{ secrets.R2_ACCESS_KEY_SECRET }}
+            R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+            R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+            R2_PATH_PREFIX: photos
             CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}

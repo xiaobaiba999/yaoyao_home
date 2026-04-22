@@ -13,6 +13,7 @@ public class AppProperties {
     private Admin admin = new Admin();
     private Gitee gitee = new Gitee();
     private Oss oss = new Oss();
+    private R2 r2 = new R2();
     private Cors cors = new Cors();
     private String uploadDir = "./uploads";
 
@@ -73,6 +74,16 @@ public class AppProperties {
                 && oss.accessKeyId != null && !oss.accessKeyId.isEmpty()
                 && oss.accessKeySecret != null && !oss.accessKeySecret.isEmpty()
                 && oss.bucketName != null && !oss.bucketName.isEmpty();
+    }
+
+    public R2 getR2() { return r2; }
+    public void setR2(R2 r2) { this.r2 = r2; }
+
+    public boolean isR2Configured() {
+        return r2.endpoint != null && !r2.endpoint.isEmpty()
+                && r2.accessKeyId != null && !r2.accessKeyId.isEmpty()
+                && r2.accessKeySecret != null && !r2.accessKeySecret.isEmpty()
+                && r2.bucketName != null && !r2.bucketName.isEmpty();
     }
 
     @Data
@@ -147,6 +158,32 @@ public class AppProperties {
         public void setBucketName(String bucketName) { this.bucketName = bucketName; }
         public String getUrlPrefix() { return urlPrefix; }
         public void setUrlPrefix(String urlPrefix) { this.urlPrefix = urlPrefix; }
+        public String getPathPrefix() { return pathPrefix; }
+        public void setPathPrefix(String pathPrefix) { this.pathPrefix = pathPrefix; }
+    }
+
+    @Data
+    public static class R2 {
+        private String endpoint;
+        private String accessKeyId;
+        private String accessKeySecret;
+        private String bucketName;
+        private String publicUrl;
+        private String region = "auto";
+        private String pathPrefix = "photos";
+
+        public String getEndpoint() { return endpoint; }
+        public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+        public String getAccessKeyId() { return accessKeyId; }
+        public void setAccessKeyId(String accessKeyId) { this.accessKeyId = accessKeyId; }
+        public String getAccessKeySecret() { return accessKeySecret; }
+        public void setAccessKeySecret(String accessKeySecret) { this.accessKeySecret = accessKeySecret; }
+        public String getBucketName() { return bucketName; }
+        public void setBucketName(String bucketName) { this.bucketName = bucketName; }
+        public String getPublicUrl() { return publicUrl; }
+        public void setPublicUrl(String publicUrl) { this.publicUrl = publicUrl; }
+        public String getRegion() { return region; }
+        public void setRegion(String region) { this.region = region; }
         public String getPathPrefix() { return pathPrefix; }
         public void setPathPrefix(String pathPrefix) { this.pathPrefix = pathPrefix; }
     }

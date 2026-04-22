@@ -9,6 +9,7 @@ import com.yaoyao.service.GiteeStorageService;
 import com.yaoyao.service.LocalStorageService;
 import com.yaoyao.service.OssStorageService;
 import com.yaoyao.service.PhotoService;
+import com.yaoyao.service.R2StorageService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ public class PhotoServiceImpl implements PhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(PhotoServiceImpl.class);
     private final PhotoMapper photoMapper;
+    private final R2StorageService r2StorageService;
     private final OssStorageService ossStorageService;
     private final GiteeStorageService giteeStorageService;
     private final LocalStorageService localStorageService;
@@ -48,7 +50,10 @@ public class PhotoServiceImpl implements PhotoService {
         }
 
         String url;
-        if (appProperties.isOssConfigured()) {
+        if (appProperties.isR2Configured()) {
+            url = r2StorageService.uploadFile(file);
+            log.info("[PhotoService] 使用R2存储: {}", url);
+        } else if (appProperties.isOssConfigured()) {
             url = ossStorageService.uploadFile(file);
             log.info("[PhotoService] 使用OSS存储: {}", url);
         } else if (appProperties.isGiteeConfigured()) {
@@ -80,7 +85,10 @@ public class PhotoServiceImpl implements PhotoService {
         if (photo != null && StrUtil.isNotBlank(photo.getUrl())) {
             String url = photo.getUrl();
             try {
-                if (url.contains("aliyuncs.com") && appProperties.isOssConfigured()) {
+                if ((url.contains("r2.cloudflarestorage.com") || url.contains("cloudflare")) && appProperties.isR2Configured()) {
+                    String objectKey = ((R2StorageServiceImpl) r2StorageService).extractObjectKey(url);
+                    r2StorageService.deleteFile(objectKey);
+                } else if (url.contains("aliyuncs.com") && appProperties.isOssConfigured()) {
                     ossStorageService.deleteFile(url);
                 } else if (url.contains("gitee.com")) {
                     giteeStorageService.deleteFile(photo.getFilename());

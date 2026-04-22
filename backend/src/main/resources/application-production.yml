@@ -30,6 +30,13 @@ yaoyao:
   admin:
     username: yaoyao
     password: yaoyao20230228
+  r2:
+    endpoint: ${R2_ENDPOINT:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    access-key-secret: ${R2_ACCESS_KEY_SECRET:}
+    bucket-name: ${R2_BUCKET_NAME:}
+    public-url: ${R2_PUBLIC_URL:}
+    path-prefix: ${R2_PATH_PREFIX:photos}
   oss:
     endpoint: ${OSS_ENDPOINT:}
     access-key-id: ${OSS_ACCESS_KEY_ID:}

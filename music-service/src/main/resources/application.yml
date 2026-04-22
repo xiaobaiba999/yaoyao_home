@@ -23,6 +23,13 @@ music:
   storage-path: ${MUSIC_STORAGE_PATH:./music-files}
   max-size: 52428800
   base-url: ${MUSIC_BASE_URL:}
+  r2:
+    endpoint: ${R2_ENDPOINT:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    access-key-secret: ${R2_ACCESS_KEY_SECRET:}
+    bucket-name: ${R2_BUCKET_NAME:}
+    public-url: ${R2_PUBLIC_URL:}
+    path-prefix: ${R2_PATH_PREFIX:music}
   oss:
     endpoint: ${OSS_ENDPOINT:}
     access-key-id: ${OSS_ACCESS_KEY_ID:}

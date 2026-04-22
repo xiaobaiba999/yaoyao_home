@@ -12,8 +12,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import jakarta.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,6 +39,24 @@ public class MusicServiceImpl implements MusicService {
 
     @Value("${music.base-url:}")
     private String baseUrl;
+
+    @Value("${music.r2.endpoint:}")
+    private String r2Endpoint;
+
+    @Value("${music.r2.access-key-id:}")
+    private String r2AccessKeyId;
+
+    @Value("${music.r2.access-key-secret:}")
+    private String r2AccessKeySecret;
+
+    @Value("${music.r2.bucket-name:}")
+    private String r2BucketName;
+
+    @Value("${music.r2.public-url:}")
+    private String r2PublicUrl;
+
+    @Value("${music.r2.path-prefix:music}")
+    private String r2PathPrefix;
 
     @Value("${music.oss.endpoint:}")
     private String ossEndpoint;
@@ -50,6 +76,15 @@ public class MusicServiceImpl implements MusicService {
     @Value("${music.oss.path-prefix:music}")
     private String ossPathPrefix;
 
+    private S3Client s3Client;
+
+    private boolean isR2Configured() {
+        return r2Endpoint != null && !r2Endpoint.isEmpty()
+                && r2AccessKeyId != null && !r2AccessKeyId.isEmpty()
+                && r2AccessKeySecret != null && !r2AccessKeySecret.isEmpty()
+                && r2BucketName != null && !r2BucketName.isEmpty();
+    }
+
     private boolean isOssConfigured() {
         return ossEndpoint != null && !ossEndpoint.isEmpty()
                 && ossAccessKeyId != null && !ossAccessKeyId.isEmpty()
@@ -63,10 +98,19 @@ public class MusicServiceImpl implements MusicService {
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        if (!isOssConfigured()) {
-            syncDatabaseWithStorage();
+        if (isR2Configured()) {
+            s3Client = S3Client.builder()
+                    .endpointOverride(java.net.URI.create(r2Endpoint))
+                    .region(Region.of("auto"))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(r2AccessKeyId, r2AccessKeySecret)
+                    ))
+                    .build();
+            log.info("[MusicService] R2已配置，文件存储在Cloudflare R2");
+        } else if (isOssConfigured()) {
+            log.info("[MusicService] OSS已配置，文件存储在阿里云OSS");
         } else {
-            log.info("[MusicService] OSS已配置，文件存储在云端，无需本地同步");
+            syncDatabaseWithStorage();
         }
     }
 
@@ -85,7 +129,7 @@ public class MusicServiceImpl implements MusicService {
 
         if (missingCount > 0) {
             log.warn("[MusicService] 发现 {} 条音乐记录的本地文件缺失，但数据库记录保留（可能是FC重新部署导致临时存储清空）", missingCount);
-            log.info("[MusicService] 提示：请配置OSS存储以实现文件持久化，避免FC部署后文件丢失");
+            log.info("[MusicService] 提示：请配置R2/OSS存储以实现文件持久化，避免FC部署后文件丢失");
         } else {
             log.info("[MusicService] 所有音乐文件完整性检查通过，共 {} 首", allMusic.size());
         }
@@ -116,7 +160,9 @@ public class MusicServiceImpl implements MusicService {
 
         String fileUrl;
 
-        if (isOssConfigured()) {
+        if (isR2Configured()) {
+            fileUrl = uploadToR2(fileName, fileData);
+        } else if (isOssConfigured()) {
             fileUrl = uploadToOss(fileName, fileData);
         } else {
             uploadToLocal(fileName, fileData);
@@ -138,12 +184,35 @@ public class MusicServiceImpl implements MusicService {
         return musicRepository.save(music);
     }
 
+    private String uploadToR2(String fileName, byte[] fileData) {
+        String objectKey = r2PathPrefix + "/" + fileName;
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(r2BucketName)
+                    .key(objectKey)
+                    .contentType("audio/mpeg")
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(new ByteArrayInputStream(fileData), fileData.length));
+            log.info("[MusicService] R2上传成功: {}", objectKey);
+
+            if (r2PublicUrl != null && !r2PublicUrl.isEmpty()) {
+                String base = r2PublicUrl.endsWith("/") ? r2PublicUrl : r2PublicUrl + "/";
+                return base + objectKey;
+            }
+            return "https://pub-" + r2BucketName + ".r2.dev/" + objectKey;
+        } catch (Exception e) {
+            log.error("[MusicService] R2上传失败", e);
+            throw new RuntimeException("文件上传到R2失败", e);
+        }
+    }
+
     private String uploadToOss(String fileName, byte[] fileData) {
         String objectKey = ossPathPrefix + "/" + fileName;
         OSS ossClient = null;
         try {
             ossClient = new OSSClientBuilder().build(ossEndpoint, ossAccessKeyId, ossAccessKeySecret);
-            ossClient.putObject(ossBucketName, objectKey, new java.io.ByteArrayInputStream(fileData));
+            ossClient.putObject(ossBucketName, objectKey, new ByteArrayInputStream(fileData));
             log.info("[MusicService] OSS上传成功: {}", objectKey);
 
             if (ossUrlPrefix != null && !ossUrlPrefix.isEmpty()) {
@@ -176,16 +245,37 @@ public class MusicServiceImpl implements MusicService {
         Music music = musicRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("音乐不存在"));
 
-        if (isOssConfigured() && music.getFileUrl() != null && music.getFileUrl().contains("aliyuncs.com")) {
-            deleteFromOss(music.getFileName());
-        } else {
-            File file = new File(storagePath, music.getFileName());
-            if (file.exists()) {
-                file.delete();
+        try {
+            if (isR2Configured() && music.getFileUrl() != null &&
+                    (music.getFileUrl().contains("r2.dev") || music.getFileUrl().contains("cloudflare"))) {
+                deleteFromR2(music.getFileName());
+            } else if (isOssConfigured() && music.getFileUrl() != null && music.getFileUrl().contains("aliyuncs.com")) {
+                deleteFromOss(music.getFileName());
+            } else {
+                File file = new File(storagePath, music.getFileName());
+                if (file.exists()) {
+                    file.delete();
+                }
             }
+        } catch (Exception e) {
+            log.warn("[MusicService] 删除存储文件失败: {}", e.getMessage());
         }
 
         musicRepository.deleteById(id);
+    }
+
+    private void deleteFromR2(String fileName) {
+        String objectKey = r2PathPrefix + "/" + fileName;
+        try {
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(r2BucketName)
+                    .key(objectKey)
+                    .build();
+            s3Client.deleteObject(deleteRequest);
+            log.info("[MusicService] R2删除成功: {}", objectKey);
+        } catch (Exception e) {
+            log.error("[MusicService] R2删除失败: {}", objectKey, e);
+        }
     }
 
     private void deleteFromOss(String fileName) {
